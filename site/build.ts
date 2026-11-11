@@ -139,10 +139,10 @@ function renderUsage(markdown: string): string {
       return `<p class="line line-${speaker}">${decorate(html)}</p>`;
     });
   if (lines.length === 0) return "";
-  return `<aside class="usage" aria-label="Usage example">
-<h2>Usage</h2>
+  return `<section class="usage" aria-labelledby="usage-heading">
+<h2 id="usage-heading">Usage</h2>
 ${lines.join("\n")}
-</aside>`;
+</section>`;
 }
 
 function load(): { sections: Section[]; entries: Entry[] } {
