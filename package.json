@@ -4,12 +4,14 @@
   "type": "module",
   "scripts": {
     "generate": "tsx internal/generate-readme.ts",
+    "build": "tsx site/build.ts",
     "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "marked": "^18.2.0",
     "prettier": "^3.8.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
