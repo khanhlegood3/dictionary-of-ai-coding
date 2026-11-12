@@ -131,6 +131,7 @@
 
       var a = document.createElement("a");
       a.href = "/" + item.s;
+      a.dataset.slug = item.s;
       a.tabIndex = -1;
 
       var term = document.createElement("span");
@@ -150,7 +151,27 @@
     input.setAttribute("aria-expanded", "true");
   }
 
+  // A page can handle the choice itself (the map selects the term in place)
+  // by cancelling this event. Otherwise the term's page opens.
+  function open(slug) {
+    var event = new CustomEvent("dictionary:select", {
+      detail: { slug: slug },
+      cancelable: true,
+    });
+    if (document.dispatchEvent(event)) {
+      window.location.href = "/" + slug;
+      return;
+    }
+    close();
+    input.blur();
+  }
+
   function update() {
+    document.dispatchEvent(
+      new CustomEvent("dictionary:query", {
+        detail: { query: input.value.trim() },
+      })
+    );
     var q = input.value.trim().toLowerCase();
     if (!q) {
       close();
@@ -184,7 +205,7 @@
       var target = results[active === -1 ? 0 : active];
       if (target) {
         event.preventDefault();
-        window.location.href = "/" + target.s;
+        open(target.s);
       }
     } else if (event.key === "Escape") {
       if (list.hidden) input.blur();
@@ -206,6 +227,14 @@
     event.preventDefault();
     input.focus();
     input.select();
+  });
+
+  list.addEventListener("click", function (event) {
+    var link = event.target.closest("a[data-slug]");
+    // Leave modified clicks alone so "open in new tab" still works.
+    if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    open(link.dataset.slug);
   });
 
   document.addEventListener("click", function (event) {
