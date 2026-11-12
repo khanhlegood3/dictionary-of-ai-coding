@@ -13,6 +13,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
+import { layoutGraph } from "./layout";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE);
@@ -28,6 +29,8 @@ const UPSTREAM_REPO = "https://github.com/mattpocock/dictionary-of-ai-coding";
 const SECTION_RE = /^## Section (\d+) — (.+)$/;
 const LINK_RE = /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g;
 const USAGE_MARKER = "_Usage:_";
+// Paths the site itself uses. A term may not take one of them.
+const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum"]);
 
 type Section = { number: number; title: string; entries: Entry[] };
 
@@ -153,6 +156,8 @@ function load(): { sections: Section[]; entries: Entry[] } {
       const slug = slugify(term);
       const clash = [...slugs].find(([, v]) => v === slug);
       if (clash) fail(`"${term}" and "${clash[0]}" share the slug "${slug}"`);
+      if (RESERVED_SLUGS.has(slug))
+        fail(`"${term}" would be published at /${slug}, which is a site page`);
       if (slugs.has(term)) fail(`Curriculum.md: duplicate term "${term}"`);
       slugs.set(term, slug);
     }
@@ -216,10 +221,13 @@ const THEME_BOOT = `(function(){try{var t=localStorage.getItem("theme");if(t==="
 function layout(opts: {
   title: string;
   description: string;
-  nav: "curriculum" | "a-z" | null;
+  nav: "map" | "curriculum" | "a-z" | null;
   termCount: number;
   main: string;
+  /** The map page fills the viewport and loads the graph script. */
+  variant?: "map";
 }): string {
+  const isMap = opts.variant === "map";
   const fullTitle =
     opts.title === SITE_NAME ? SITE_NAME : `${opts.title} — ${SITE_NAME}`;
   const current = (key: string) =>
@@ -238,15 +246,18 @@ function layout(opts: {
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>${THEME_BOOT}</script>
 <link rel="stylesheet" href="/assets/styles.css">
-<script src="/assets/app.js" defer></script>
+<script src="/assets/app.js" defer></script>${
+    isMap ? '\n<script src="/assets/graph.js" defer></script>' : ""
+  }
 </head>
-<body>
+<body${isMap ? ' class="page-map"' : ""}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
 <div class="wrap header-inner">
 <a class="brand" href="/">${SITE_NAME}</a>
 <nav class="site-nav" aria-label="Views">
-<a href="/"${current("curriculum")}>Curriculum</a>
+<a href="/"${current("map")}>Map</a>
+<a href="/curriculum"${current("curriculum")}>Curriculum</a>
 <a href="/a-z"${current("a-z")}>A–Z</a>
 </nav>
 <div class="search" role="search">
@@ -259,9 +270,12 @@ function layout(opts: {
 </button>
 </div>
 </header>
-<main id="main" class="wrap">
+<main id="main"${isMap ? "" : ' class="wrap"'}>
 ${opts.main}
-</main>
+</main>${
+    isMap
+      ? ""
+      : `
 <footer class="site-footer">
 <div class="wrap">
 <p>Written by Matt Pocock. This site is an unofficial build of the public
@@ -269,7 +283,8 @@ ${opts.main}
 repository. The original lives at
 <a href="${UPSTREAM_SITE}" rel="noopener noreferrer">aicodingdictionary.com</a>.</p>
 </div>
-</footer>
+</footer>`
+  }
 </body>
 </html>
 `;
@@ -286,7 +301,7 @@ function termRow(e: Entry, showNumber: boolean): string {
   return `<li><a href="/${e.slug}">${num}<span class="term">${escapeHtml(e.term)}</span><span class="desc">${escapeHtml(e.description)}</span></a></li>`;
 }
 
-function homePage(sections: Section[], entries: Entry[]): string {
+function curriculumPage(sections: Section[], entries: Entry[]): string {
   const jump = sections
     .map(
       (s) =>
@@ -310,12 +325,12 @@ ${s.entries.map((e) => termRow(e, true)).join("\n")}
 
   const first = entries[0];
   return layout({
-    title: SITE_NAME,
-    description: TAGLINE,
+    title: "Curriculum",
+    description: `All ${entries.length} terms in the ${SITE_NAME}, in the order that teaches them.`,
     nav: "curriculum",
     termCount: entries.length,
     main: `<div class="hero">
-<h1>${SITE_NAME}</h1>
+<h1>Curriculum</h1>
 <p class="lede">${TAGLINE}</p>
 <p>Why does context degrade? Why is the bill so high? Why does the same prompt
 behave differently from one day to the next? Each has a clean answer, once
@@ -332,6 +347,94 @@ ${jump}
 </nav>
 </div>
 ${blocks}`,
+  });
+}
+
+// The undirected links between entries: one pair per two linked terms.
+function linkPairs(entries: Entry[]): [number, number][] {
+  const index = new Map(entries.map((e, i) => [e.term, i]));
+  const seen = new Set<string>();
+  const pairs: [number, number][] = [];
+  entries.forEach((e, i) => {
+    for (const target of e.linksTo) {
+      const j = index.get(target);
+      if (j === undefined || j === i) continue;
+      const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pairs.push(i < j ? [i, j] : [j, i]);
+    }
+  });
+  return pairs;
+}
+
+function graphData(sections: Section[], entries: Entry[]): string {
+  const index = new Map(entries.map((e, i) => [e.term, i]));
+  const positions = layoutGraph(
+    entries.length,
+    linkPairs(entries),
+    entries.map((e) => e.section.number)
+  );
+  return JSON.stringify({
+    sections: sections.map((s) => ({ n: s.number, t: s.title })),
+    nodes: entries.map((e, i) => ({
+      s: e.slug,
+      t: e.term,
+      d: e.description,
+      c: e.section.number,
+      p: positions[i],
+      // Indexes of the entries this one links to.
+      l: [...e.linksTo].map((t) => index.get(t)).filter((n) => n !== undefined),
+      h: e.bodyHtml + e.usageHtml,
+    })),
+  });
+}
+
+function mapPage(entries: Entry[]): string {
+  const links = linkPairs(entries).length;
+  return layout({
+    title: SITE_NAME,
+    description: TAGLINE,
+    nav: "map",
+    variant: "map",
+    termCount: entries.length,
+    main: `<div id="graph-stage" class="graph-stage">
+<canvas id="graph-canvas" class="graph-canvas" tabindex="0" role="img" aria-label="3D map of ${entries.length} terms. Arrow keys rotate it, plus and minus zoom. To open a term, use search or the curriculum list."></canvas>
+<div class="graph-intro" id="graph-intro">
+<h1>${SITE_NAME}</h1>
+<p class="lede">${TAGLINE}</p>
+<p class="graph-hint">${entries.length} terms and the ${links} links between them. Drag to rotate, scroll to zoom, select a term to read it.</p>
+<p class="graph-credit">Written by Matt Pocock. Unofficial build of
+<a href="${UPSTREAM_REPO}" rel="noopener noreferrer">dictionary-of-ai-coding</a>.
+The original is at
+<a href="${UPSTREAM_SITE}" rel="noopener noreferrer">aicodingdictionary.com</a>.</p>
+</div>
+<p class="graph-status" id="graph-status" role="status">Loading the map… The same terms are in the <a href="/curriculum">curriculum list</a>.</p>
+<div class="graph-controls" role="group" aria-label="Map view">
+<button type="button" class="icon-button" id="graph-zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+<button type="button" class="icon-button" id="graph-zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+<button type="button" class="icon-button" id="graph-reset" aria-label="Reset the view"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+<aside id="term-panel" class="term-panel" aria-labelledby="term-panel-title" hidden>
+<header class="term-panel-head">
+<p class="eyebrow" id="term-panel-eyebrow"></p>
+<button type="button" class="icon-button" id="term-panel-close" aria-label="Close this term"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+</header>
+<div class="term-panel-body" id="term-panel-body">
+<h2 id="term-panel-title" tabindex="-1"></h2>
+<div class="prose" id="term-panel-content"></div>
+<section class="backlinks" id="term-panel-related-section">
+<h2>Related terms</h2>
+<ul id="term-panel-related"></ul>
+</section>
+<p class="term-panel-more"><a id="term-panel-page" href="/">Open this term as a page</a></p>
+</div>
+<nav class="pager term-panel-pager" aria-label="Previous and next term">
+<a class="prev" id="term-panel-prev" href="/" rel="prev"><span class="dir">Previous</span><span class="term"></span></a>
+<a class="next" id="term-panel-next" href="/" rel="next"><span class="dir">Next</span><span class="term"></span></a>
+</nav>
+</aside>
+</div>`,
   });
 }
 
@@ -427,7 +530,7 @@ ${
     main: `<div class="entry-layout">
 ${sidebar(sections, e)}
 <article class="entry">
-<p class="eyebrow"><a href="/#section-${e.section.number}">Section ${e.section.number} — ${escapeHtml(e.section.title)}</a><span class="sep" aria-hidden="true">·</span>Term ${e.position} of ${entries.length}</p>
+<p class="eyebrow"><a href="/curriculum#section-${e.section.number}">Section ${e.section.number} — ${escapeHtml(e.section.title)}</a><span class="sep" aria-hidden="true">·</span>Term ${e.position} of ${entries.length}<span class="sep" aria-hidden="true">·</span><a href="/?term=${e.slug}">View in map</a></p>
 <h1>${escapeHtml(e.term)}</h1>
 <div class="prose">
 ${e.bodyHtml}
@@ -449,7 +552,7 @@ function notFoundPage(entries: Entry[]): string {
     main: `<div class="hero hero-compact">
 <h1>Page not found</h1>
 <p class="lede">There is no entry at this address.</p>
-<p>Search for a term above, or browse the <a href="/">curriculum</a> or the <a href="/a-z">A–Z list</a>.</p>
+<p>Search for a term above, or browse the <a href="/">map</a>, the <a href="/curriculum">curriculum</a> or the <a href="/a-z">A–Z list</a>.</p>
 </div>`,
   });
 }
@@ -472,8 +575,11 @@ function main(): void {
   mkdirSync(join(OUT, "assets"), { recursive: true });
   copyFileSync(join(HERE, "styles.css"), join(OUT, "assets", "styles.css"));
   copyFileSync(join(HERE, "app.js"), join(OUT, "assets", "app.js"));
+  copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
 
-  write("index.html", homePage(sections, entries));
+  write("index.html", mapPage(entries));
+  write("graph.json", graphData(sections, entries));
+  write("curriculum/index.html", curriculumPage(sections, entries));
   write("a-z/index.html", azPage(sections, entries));
   write("404.html", notFoundPage(entries));
   write("favicon.svg", FAVICON);
