@@ -73,6 +73,7 @@
 - Context pointer
 - Skill
 - Subagent
+- Home Repo
 
 ## Section 7 — Patterns of Work
 
@@ -87,3 +88,5 @@
 - Prototyping
 - DX
 - AX
+- Software factory
+- Dark factory
