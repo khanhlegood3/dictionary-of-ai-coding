@@ -23,6 +23,8 @@ const OUT = join(ROOT, "dist");
 
 const SITE_NAME = "AI Coding Dictionary";
 const TAGLINE = "The vocabulary of AI coding, translated into plain English.";
+const AUTHOR_NAME = "Lê Xuân Khánh";
+const AUTHOR_URL = "https://khanhxl.vercel.app/";
 const UPSTREAM_SITE = "https://aicodingdictionary.com";
 const UPSTREAM_REPO = "https://github.com/mattpocock/dictionary-of-ai-coding";
 
@@ -404,10 +406,7 @@ function mapPage(entries: Entry[]): string {
 <h1>${SITE_NAME}</h1>
 <p class="lede">${TAGLINE}</p>
 <p class="graph-hint">${entries.length} terms and the ${links} links between them. Drag to rotate, scroll to zoom, select a term to read it.</p>
-<p class="graph-credit">Written by Matt Pocock. Unofficial build of
-<a href="${UPSTREAM_REPO}" rel="noopener noreferrer">dictionary-of-ai-coding</a>.
-The original is at
-<a href="${UPSTREAM_SITE}" rel="noopener noreferrer">aicodingdictionary.com</a>.</p>
+<p class="graph-credit">Written by <a href="${AUTHOR_URL}" rel="noopener">${AUTHOR_NAME}</a></p>
 </div>
 <p class="graph-status" id="graph-status" role="status">Loading the map… The same terms are in the <a href="/curriculum">curriculum list</a>.</p>
 <div class="graph-controls" role="group" aria-label="Map view">
