@@ -1,9 +1,14 @@
 #!/usr/bin/env -S npx tsx
-// Build a static website into dist/ from internal/Curriculum.md + dictionary/*.md.
+// Build a static website into dist/ from internal/Curriculum.md,
+// dictionary/*.md and translations/vi/*.md.
 // The markdown files are the only data source. There is no database.
+//
+// The site is built once per language. Vietnamese is the default and lives at
+// the root; English lives under /en. Both share the same terms, slugs and map.
 
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -14,38 +19,59 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
 import { layoutGraph } from "./layout";
+import { BASE, LANGS, STRINGS, fill, type Lang, type Strings } from "./strings";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE);
 const CURRICULUM = join(ROOT, "internal", "Curriculum.md");
 const DICT_DIR = join(ROOT, "dictionary");
+/** Translated entries: translations/<lang>/<Term>.md, same format as dictionary/. */
+const TRANSLATIONS_DIR = join(ROOT, "translations");
+const SOURCE_LANG: Lang = "en";
 const OUT = join(ROOT, "dist");
 
-const SITE_NAME = "AI Coding Dictionary";
-const TAGLINE = "The vocabulary of AI coding, translated into plain English.";
 const AUTHOR_NAME = "Lê Xuân Khánh";
 const AUTHOR_URL = "https://khanhxl.vercel.app/";
-// The one credit line, shown on the map and in the footer of every other page.
-const CREDIT = `Built by <a href="${AUTHOR_URL}" rel="noopener">${AUTHOR_NAME}</a>.`;
 
 const SECTION_RE = /^## Section (\d+) — (.+)$/;
 const LINK_RE = /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g;
+// The marker is the same in every language, so one parser reads them all.
 const USAGE_MARKER = "_Usage:_";
 // Paths the site itself uses. A term may not take one of them.
-const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum"]);
+const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum", "en"]);
 
 type Section = { number: number; title: string; entries: Entry[] };
+
+/** The text of one entry in one language. */
+type EntryText = {
+  /** The term's name in this language, when it has one besides the English. */
+  name?: string;
+  description: string;
+  bodyHtml: string;
+  usageHtml: string;
+  /** False when the language has no translation and English is shown instead. */
+  translated: boolean;
+};
 
 type Entry = {
   term: string;
   slug: string;
-  description: string;
   section: Section;
   position: number;
-  bodyHtml: string;
-  usageHtml: string;
+  /** Terms the English entry links to. The map is the same in every language. */
   linksTo: Set<string>;
+  text: Record<Lang, EntryText>;
 };
+
+/** Everything a page template needs to render in one language. */
+type Site = {
+  lang: Lang;
+  t: Strings;
+  sections: Section[];
+  entries: Entry[];
+};
+
+const warnings: string[] = [];
 
 function fail(msg: string): never {
   console.error(msg);
@@ -66,6 +92,19 @@ function slugify(term: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N} -]/gu, "")
     .replace(/ /g, "-");
+}
+
+/** The address of a page in a language. `path` is "/" or starts with "/". */
+function url(lang: Lang, path: string): string {
+  const base = BASE[lang];
+  if (path === "/") return base || "/";
+  if (path.startsWith("/#") || path.startsWith("/?"))
+    return (base || "/") + path.slice(1);
+  return base + path;
+}
+
+function sectionTitle(site: Site, s: Section): string {
+  return site.t.sectionTitles[s.title] ?? s.title;
 }
 
 function parseCurriculum(
@@ -94,22 +133,18 @@ function parseCurriculum(
   return sections;
 }
 
-function parseEntryFile(term: string): { description: string; body: string } {
-  const path = join(DICT_DIR, `${term}.md`);
-  let raw: string;
-  try {
-    raw = readFileSync(path, "utf8");
-  } catch {
-    fail(`Curriculum.md references "${term}" but ${path} does not exist`);
-  }
+function parseEntryFile(path: string): {
+  description: string;
+  name?: string;
+  body: string;
+} {
+  const raw = readFileSync(path, "utf8");
   if (!raw.startsWith("---\n")) fail(`${path}: missing frontmatter`);
   const end = raw.indexOf("\n---\n", 4);
   if (end === -1) fail(`${path}: unterminated frontmatter`);
 
-  const line = raw
-    .slice(4, end)
-    .split("\n")
-    .find((l) => l.startsWith("description:"));
+  const lines = raw.slice(4, end).split("\n");
+  const line = lines.find((l) => l.startsWith("description:"));
   if (!line) fail(`${path}: frontmatter has no description`);
   let description = line.slice("description:".length).trim();
   if (description.startsWith('"')) {
@@ -119,7 +154,18 @@ function parseEntryFile(term: string): { description: string; body: string } {
   }
   if (!description) fail(`${path}: description is empty`);
 
-  return { description, body: raw.slice(end + 5).trim() };
+  // Optional. Translations use it to give the term a name in their language.
+  const name = lines
+    .find((l) => l.startsWith("name:"))
+    ?.slice("name:".length)
+    .trim()
+    .replace(/^(["'])(.*)\1$/, "$2");
+
+  return {
+    description,
+    name: name || undefined,
+    body: raw.slice(end + 5).trim(),
+  };
 }
 
 function decorate(html: string): string {
@@ -133,7 +179,7 @@ function decorate(html: string): string {
     .replace(/<p><em>([^<]{1,40}:)<\/em>/g, '<p><em class="label">$1</em>');
 }
 
-function renderUsage(markdown: string): string {
+function renderUsage(markdown: string, heading: string): string {
   const lines = markdown
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -145,9 +191,45 @@ function renderUsage(markdown: string): string {
     });
   if (lines.length === 0) return "";
   return `<section class="usage" aria-labelledby="usage-heading">
-<h2 id="usage-heading">Usage</h2>
+<h2 id="usage-heading">${escapeHtml(heading)}</h2>
 ${lines.join("\n")}
 </section>`;
+}
+
+/**
+ * Turn one entry file into HTML for the pages of `lang`.
+ * Links between entries become links to that language's pages.
+ */
+function renderEntryText(
+  path: string,
+  label: string,
+  term: string,
+  slugs: Map<string, string>,
+  lang: Lang
+): EntryText & { linksTo: Set<string> } {
+  const { description, name, body } = parseEntryFile(path);
+  const linksTo = new Set<string>();
+  const linked = body.replace(LINK_RE, (_, text: string, target: string) => {
+    const name = decodeURIComponent(target);
+    const slug = slugs.get(name);
+    if (!slug) fail(`${label} links to unknown entry "${name}"`);
+    if (name !== term) linksTo.add(name);
+    return `[${text}](${url(lang, `/${slug}`)})`;
+  });
+
+  const markerAt = linked.indexOf(`\n${USAGE_MARKER}\n`);
+  const main = markerAt === -1 ? linked : linked.slice(0, markerAt);
+  const usage =
+    markerAt === -1 ? "" : linked.slice(markerAt + USAGE_MARKER.length + 2);
+
+  return {
+    name,
+    description,
+    bodyHtml: decorate(marked.parse(main, { async: false, gfm: true })),
+    usageHtml: renderUsage(usage, STRINGS[lang].usage),
+    translated: true,
+    linksTo,
+  };
 }
 
 function load(): { sections: Section[]; entries: Entry[] } {
@@ -176,43 +258,99 @@ function load(): { sections: Section[]; entries: Entry[] } {
 
   const sections: Section[] = [];
   const entries: Entry[] = [];
+  const missing: Record<string, string[]> = {};
   for (const s of parsed) {
     const section: Section = { number: s.number, title: s.title, entries: [] };
     sections.push(section);
     for (const term of s.terms) {
-      const { description, body } = parseEntryFile(term);
-      const linksTo = new Set<string>();
-      const linked = body.replace(
-        LINK_RE,
-        (_, text: string, target: string) => {
-          const name = decodeURIComponent(target);
-          const slug = slugs.get(name);
-          if (!slug)
-            fail(`dictionary/${term}.md links to unknown entry "${name}"`);
-          if (name !== term) linksTo.add(name);
-          return `[${text}](/${slug})`;
-        }
+      const sourcePath = join(DICT_DIR, `${term}.md`);
+      if (!existsSync(sourcePath))
+        fail(
+          `Curriculum.md references "${term}" but ${sourcePath} does not exist`
+        );
+      const sourceLabel = `dictionary/${term}.md`;
+      const source = renderEntryText(
+        sourcePath,
+        sourceLabel,
+        term,
+        slugs,
+        SOURCE_LANG
       );
 
-      const markerAt = linked.indexOf(`\n${USAGE_MARKER}\n`);
-      const main = markerAt === -1 ? linked : linked.slice(0, markerAt);
-      const usage =
-        markerAt === -1 ? "" : linked.slice(markerAt + USAGE_MARKER.length + 2);
+      const text = {} as Record<Lang, EntryText>;
+      for (const lang of LANGS) {
+        if (lang === SOURCE_LANG) {
+          text[lang] = source;
+          continue;
+        }
+        const path = join(TRANSLATIONS_DIR, lang, `${term}.md`);
+        const label = `translations/${lang}/${term}.md`;
+        if (!existsSync(path)) {
+          // No translation yet: show the English text on this language's pages.
+          (missing[lang] ??= []).push(term);
+          text[lang] = {
+            ...renderEntryText(sourcePath, sourceLabel, term, slugs, lang),
+            translated: false,
+          };
+          continue;
+        }
+        const translated = renderEntryText(path, label, term, slugs, lang);
+        const lost = [...source.linksTo].filter(
+          (t) => !translated.linksTo.has(t)
+        );
+        const extra = [...translated.linksTo].filter(
+          (t) => !source.linksTo.has(t)
+        );
+        if (lost.length || extra.length)
+          warnings.push(
+            `${label}: links differ from the English entry` +
+              (lost.length ? `; missing: ${lost.join(", ")}` : "") +
+              (extra.length ? `; extra: ${extra.join(", ")}` : "")
+          );
+        if (Boolean(translated.usageHtml) !== Boolean(source.usageHtml))
+          warnings.push(`${label}: the Usage section does not match English`);
+        text[lang] = translated;
+      }
 
       const entry: Entry = {
         term,
         slug: slugs.get(term) as string,
-        description,
         section,
         position: entries.length + 1,
-        bodyHtml: decorate(marked.parse(main, { async: false, gfm: true })),
-        usageHtml: renderUsage(usage),
-        linksTo,
+        linksTo: source.linksTo,
+        text,
       };
       section.entries.push(entry);
       entries.push(entry);
     }
   }
+
+  for (const lang of LANGS) {
+    if (lang === SOURCE_LANG) continue;
+    const list = missing[lang] ?? [];
+    if (list.length)
+      warnings.push(
+        `${list.length} entries have no "${lang}" translation and are shown in English: ${list.join(", ")}`
+      );
+    const dir = join(TRANSLATIONS_DIR, lang);
+    if (!existsSync(dir)) continue;
+    const stray = readdirSync(dir)
+      .filter((n) => n.endsWith(".md"))
+      .map((n) => n.slice(0, -3))
+      .filter((t) => !slugs.has(t))
+      .sort();
+    if (stray.length)
+      warnings.push(
+        `translations/${lang}/ has files for terms that no longer exist: ${stray.join(", ")}`
+      );
+    for (const s of sections) {
+      if (!(s.title in STRINGS[lang].sectionTitles))
+        warnings.push(
+          `Section "${s.title}" has no "${lang}" title in site/strings.ts`
+        );
+    }
+  }
+
   return { sections, entries };
 }
 
@@ -220,22 +358,55 @@ function load(): { sections: Section[]; entries: Entry[] } {
 
 const THEME_BOOT = `(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}})()`;
 
-function layout(opts: {
-  title: string;
-  description: string;
-  nav: "map" | "curriculum" | "a-z" | null;
-  termCount: number;
-  main: string;
-  /** The map page fills the viewport and loads the graph script. */
-  variant?: "map";
-}): string {
+function credit(site: Site): string {
+  return fill(escapeHtml(site.t.credit), {
+    name: `<a href="${AUTHOR_URL}" rel="noopener">${AUTHOR_NAME}</a>`,
+  });
+}
+
+/** Turn "{key}words{/key}" in a string into a link to `href`. */
+function linkify(text: string, links: Record<string, string>): string {
+  const values: Record<string, string> = {};
+  for (const [key, href] of Object.entries(links)) {
+    values[key] = `<a href="${href}">`;
+    values[`/${key}`] = "</a>";
+  }
+  return fill(escapeHtml(text), values);
+}
+
+// Each language links to the same page in the other language.
+function languageToggle(site: Site, path: string): string {
+  const links = LANGS.map((lang) => {
+    const t = STRINGS[lang];
+    const current = lang === site.lang ? ' aria-current="true"' : "";
+    return `<a href="${url(lang, path)}" lang="${lang}" hreflang="${lang}" aria-label="${escapeHtml(t.languageName)}" title="${escapeHtml(t.languageName)}"${current}>${t.languageCode}</a>`;
+  });
+  return `<div class="lang-toggle" id="lang-toggle" role="group" aria-label="${escapeHtml(site.t.languageToggle)}">
+${links.join("\n")}
+</div>`;
+}
+
+function layout(
+  site: Site,
+  opts: {
+    title: string;
+    description: string;
+    /** Address of this page without the language prefix, such as "/a-z". */
+    path: string;
+    nav: "map" | "curriculum" | "a-z" | null;
+    main: string;
+    /** The map page fills the viewport and loads the graph script. */
+    variant?: "map";
+  }
+): string {
+  const { lang, t } = site;
   const isMap = opts.variant === "map";
   const fullTitle =
-    opts.title === SITE_NAME ? SITE_NAME : `${opts.title} — ${SITE_NAME}`;
+    opts.title === t.siteName ? t.siteName : `${opts.title} — ${t.siteName}`;
   const current = (key: string) =>
     opts.nav === key ? ' aria-current="page"' : "";
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}" data-base="${BASE[lang]}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -253,21 +424,22 @@ function layout(opts: {
   }
 </head>
 <body${isMap ? ' class="page-map"' : ""}>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main">${escapeHtml(t.skip)}</a>
 <header class="site-header">
 <div class="wrap header-inner">
-<a class="brand" href="/">${SITE_NAME}</a>
-<nav class="site-nav" aria-label="Views">
-<a href="/"${current("map")}>Map</a>
-<a href="/curriculum"${current("curriculum")}>Curriculum</a>
-<a href="/a-z"${current("a-z")}>A–Z</a>
+<a class="brand" href="${url(lang, "/")}">${escapeHtml(t.siteName)}</a>
+<nav class="site-nav" aria-label="${escapeHtml(t.navLabel)}">
+<a href="${url(lang, "/")}"${current("map")}>${escapeHtml(t.navMap)}</a>
+<a href="${url(lang, "/curriculum")}"${current("curriculum")}>${escapeHtml(t.navCurriculum)}</a>
+<a href="${url(lang, "/a-z")}"${current("a-z")}>${escapeHtml(t.navAz)}</a>
 </nav>
 <div class="search" role="search">
-<input id="search-input" type="search" placeholder="Search ${opts.termCount} terms" aria-label="Search terms" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list">
+<input id="search-input" type="search" placeholder="${escapeHtml(fill(t.searchPlaceholder, { count: site.entries.length }))}" aria-label="${escapeHtml(t.searchLabel)}" data-no-match="${escapeHtml(t.searchNoMatch)}" data-error="${escapeHtml(t.searchError)}" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list">
 <kbd aria-hidden="true">/</kbd>
-<ul id="search-results" role="listbox" aria-label="Matching terms" hidden></ul>
+<ul id="search-results" role="listbox" aria-label="${escapeHtml(t.searchResults)}" hidden></ul>
 </div>
-<button id="theme-toggle" class="icon-button" type="button" aria-label="Switch colour theme">
+${languageToggle(site, opts.path)}
+<button id="theme-toggle" class="icon-button" type="button" aria-label="${escapeHtml(t.themeToggle)}">
 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 0 18Z"/><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
 </button>
 </div>
@@ -280,7 +452,7 @@ ${opts.main}
       : `
 <footer class="site-footer">
 <div class="wrap">
-<p>${CREDIT}</p>
+<p>${credit(site)}</p>
 </div>
 </footer>`
   }
@@ -293,53 +465,55 @@ function ordinal(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-function termRow(e: Entry, showNumber: boolean): string {
+function termRow(site: Site, e: Entry, showNumber: boolean): string {
   const num = showNumber
     ? `<span class="num" aria-hidden="true">${ordinal(e.position)}</span>`
     : "";
-  return `<li><a href="/${e.slug}">${num}<span class="term">${escapeHtml(e.term)}</span><span class="desc">${escapeHtml(e.description)}</span></a></li>`;
+  return `<li><a href="${url(site.lang, `/${e.slug}`)}">${num}<span class="term">${escapeHtml(e.term)}</span><span class="desc">${escapeHtml(e.text[site.lang].description)}</span></a></li>`;
 }
 
-function curriculumPage(sections: Section[], entries: Entry[]): string {
+function curriculumPage(site: Site): string {
+  const { lang, t, sections, entries } = site;
   const jump = sections
     .map(
       (s) =>
-        `<li><a href="#section-${s.number}"><span class="num" aria-hidden="true">${s.number}</span>${escapeHtml(s.title)}</a></li>`
+        `<li><a href="#section-${s.number}"><span class="num" aria-hidden="true">${s.number}</span>${escapeHtml(sectionTitle(site, s))}</a></li>`
     )
     .join("\n");
   const blocks = sections
     .map(
       (s) => `<section class="section" id="section-${s.number}">
 <header class="section-head">
-<p class="eyebrow">Section ${s.number}</p>
-<h2>${escapeHtml(s.title)}</h2>
-<p class="count">${s.entries.length} terms</p>
+<p class="eyebrow">${escapeHtml(fill(t.section, { n: s.number }))}</p>
+<h2>${escapeHtml(sectionTitle(site, s))}</h2>
+<p class="count">${escapeHtml(fill(t.termCount, { count: s.entries.length }))}</p>
 </header>
 <ol class="term-list">
-${s.entries.map((e) => termRow(e, true)).join("\n")}
+${s.entries.map((e) => termRow(site, e, true)).join("\n")}
 </ol>
 </section>`
     )
     .join("\n");
 
   const first = entries[0];
-  return layout({
-    title: "Curriculum",
-    description: `All ${entries.length} terms in the ${SITE_NAME}, in the order that teaches them.`,
+  return layout(site, {
+    title: t.curriculumTitle,
+    description: fill(t.curriculumDescription, {
+      count: entries.length,
+      site: t.siteName,
+    }),
+    path: "/curriculum",
     nav: "curriculum",
-    termCount: entries.length,
     main: `<div class="hero">
-<h1>Curriculum</h1>
-<p class="lede">${TAGLINE}</p>
-<p>Why does context degrade? Why is the bill so high? Why does the same prompt
-behave differently from one day to the next? Each has a clean answer, once
-someone tells you the words to use.</p>
-<p class="hero-meta">${entries.length} terms in ${sections.length} sections, ordered so each one builds on the last.${
+<h1>${escapeHtml(t.curriculumTitle)}</h1>
+<p class="lede">${escapeHtml(t.tagline)}</p>
+<p>${escapeHtml(t.curriculumIntro)}</p>
+<p class="hero-meta">${escapeHtml(fill(t.curriculumMeta, { count: entries.length, sections: sections.length }))}${
       first
-        ? ` <a href="/${first.slug}">Start with “${escapeHtml(first.term)}”</a>.`
+        ? ` <a href="${url(lang, `/${first.slug}`)}">${escapeHtml(fill(t.curriculumStart, { term: first.term }))}</a>.`
         : ""
     }</p>
-<nav class="jump" aria-label="Sections">
+<nav class="jump" aria-label="${escapeHtml(t.sectionsLabel)}">
 <ol>
 ${jump}
 </ol>
@@ -367,7 +541,25 @@ function linkPairs(entries: Entry[]): [number, number][] {
   return pairs;
 }
 
-function graphData(sections: Section[], entries: Entry[]): string {
+/** The entry text as shown on a page of this language. */
+function entryHtml(site: Site, e: Entry): string {
+  const text = e.text[site.lang];
+  const name = text.name
+    ? `<p class="term-alt">${escapeHtml(text.name)}</p>\n`
+    : "";
+  const html = `${name}<div class="prose">
+${text.bodyHtml}
+</div>
+${text.usageHtml}`;
+  if (text.translated) return html;
+  return `<p class="notice">${escapeHtml(site.t.notTranslated)}</p>
+<div lang="${SOURCE_LANG}">
+${html}
+</div>`;
+}
+
+function graphData(site: Site): string {
+  const { sections, entries } = site;
   const index = new Map(entries.map((e, i) => [e.term, i]));
   const positions = layoutGraph(
     entries.length,
@@ -375,66 +567,75 @@ function graphData(sections: Section[], entries: Entry[]): string {
     entries.map((e) => e.section.number)
   );
   return JSON.stringify({
-    sections: sections.map((s) => ({ n: s.number, t: s.title })),
+    ui: { eyebrow: site.t.panelEyebrow },
+    sections: sections.map((s) => ({
+      n: s.number,
+      t: sectionTitle(site, s),
+    })),
     nodes: entries.map((e, i) => ({
       s: e.slug,
       t: e.term,
-      d: e.description,
+      a: e.text[site.lang].name,
+      d: e.text[site.lang].description,
       c: e.section.number,
       p: positions[i],
       // Indexes of the entries this one links to.
       l: [...e.linksTo].map((t) => index.get(t)).filter((n) => n !== undefined),
-      h: e.bodyHtml + e.usageHtml,
+      h: entryHtml(site, e),
     })),
   });
 }
 
-function mapPage(entries: Entry[]): string {
+function mapPage(site: Site): string {
+  const { lang, t, entries } = site;
   const links = linkPairs(entries).length;
-  return layout({
-    title: SITE_NAME,
-    description: TAGLINE,
+  const label = (text: string) => escapeHtml(text);
+  return layout(site, {
+    title: t.siteName,
+    description: t.tagline,
+    path: "/",
     nav: "map",
     variant: "map",
-    termCount: entries.length,
     main: `<div id="graph-stage" class="graph-stage">
-<canvas id="graph-canvas" class="graph-canvas" tabindex="0" role="img" aria-label="3D map of ${entries.length} terms. Arrow keys rotate it, plus and minus zoom. To open a term, use search or the curriculum list."></canvas>
+<canvas id="graph-canvas" class="graph-canvas" tabindex="0" role="img" aria-label="${label(fill(t.mapLabel, { count: entries.length }))}"></canvas>
 <div class="graph-intro" id="graph-intro">
-<h1>${SITE_NAME}</h1>
-<p class="lede">${TAGLINE}</p>
-<p class="graph-hint">${entries.length} terms and the ${links} links between them. Drag to rotate, scroll to zoom, select a term to read it.</p>
-<p class="graph-credit">${CREDIT}</p>
+<h1>${escapeHtml(t.siteName)}</h1>
+<p class="lede">${escapeHtml(t.tagline)}</p>
+<p class="graph-hint">${escapeHtml(fill(t.mapHint, { count: entries.length, links }))}</p>
+<p class="graph-credit">${credit(site)}</p>
 </div>
-<p class="graph-status" id="graph-status" role="status">Loading the map… The same terms are in the <a href="/curriculum">curriculum list</a>.</p>
-<div class="graph-controls" role="group" aria-label="Map view">
-<button type="button" class="icon-button" id="graph-zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
-<button type="button" class="icon-button" id="graph-zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
-<button type="button" class="icon-button" id="graph-reset" aria-label="Reset the view"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<p class="graph-status" id="graph-status" role="status" data-error="${label(t.mapError)}"><span id="graph-status-text">${escapeHtml(t.mapLoading)}</span> ${linkify(t.mapFallback, { link: url(lang, "/curriculum") })}</p>
+<div class="graph-controls" role="group" aria-label="${label(t.mapControls)}">
+<button type="button" class="icon-button" id="graph-zoom-in" aria-label="${label(t.zoomIn)}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+<button type="button" class="icon-button" id="graph-zoom-out" aria-label="${label(t.zoomOut)}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+<button type="button" class="icon-button" id="graph-reset" aria-label="${label(t.resetView)}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 </div>
 <aside id="term-panel" class="term-panel" aria-labelledby="term-panel-title" hidden>
 <header class="term-panel-head">
 <p class="eyebrow" id="term-panel-eyebrow"></p>
-<button type="button" class="icon-button" id="term-panel-close" aria-label="Close this term"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+<button type="button" class="icon-button" id="term-panel-close" aria-label="${label(t.closeTerm)}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
 </header>
 <div class="term-panel-body" id="term-panel-body">
 <h2 id="term-panel-title" tabindex="-1"></h2>
-<div class="prose" id="term-panel-content"></div>
+<div id="term-panel-content"></div>
 <section class="backlinks" id="term-panel-related-section">
-<h2>Related terms</h2>
+<h2>${escapeHtml(t.relatedTerms)}</h2>
 <ul id="term-panel-related"></ul>
 </section>
-<p class="term-panel-more"><a id="term-panel-page" href="/">Open this term as a page</a></p>
+<p class="term-panel-more"><a id="term-panel-page" href="${url(lang, "/")}">${escapeHtml(t.openAsPage)}</a></p>
 </div>
-<nav class="pager term-panel-pager" aria-label="Previous and next term">
-<a class="prev" id="term-panel-prev" href="/" rel="prev"><span class="dir">Previous</span><span class="term"></span></a>
-<a class="next" id="term-panel-next" href="/" rel="next"><span class="dir">Next</span><span class="term"></span></a>
+<nav class="pager term-panel-pager" aria-label="${label(t.pagerLabel)}">
+<a class="prev" id="term-panel-prev" href="${url(lang, "/")}" rel="prev"><span class="dir">${escapeHtml(t.previous)}</span><span class="term"></span></a>
+<a class="next" id="term-panel-next" href="${url(lang, "/")}" rel="next"><span class="dir">${escapeHtml(t.next)}</span><span class="term"></span></a>
 </nav>
 </aside>
 </div>`,
   });
 }
 
-function azPage(sections: Section[], entries: Entry[]): string {
+function azPage(site: Site): string {
+  const { t, entries } = site;
+  // Terms are English words in every language, so they sort as English.
   const sorted = [...entries].sort((a, b) =>
     a.term.localeCompare(b.term, "en", { sensitivity: "base" })
   );
@@ -446,15 +647,18 @@ function azPage(sections: Section[], entries: Entry[]): string {
     groups.set(letter, group);
   }
   const letters = [...groups.keys()];
-  return layout({
-    title: "A–Z",
-    description: `All ${entries.length} terms in the ${SITE_NAME}, in alphabetical order.`,
+  return layout(site, {
+    title: t.navAz,
+    description: fill(t.azDescription, {
+      count: entries.length,
+      site: t.siteName,
+    }),
+    path: "/a-z",
     nav: "a-z",
-    termCount: entries.length,
     main: `<div class="hero hero-compact">
-<h1>A–Z</h1>
-<p class="lede">All ${entries.length} terms in alphabetical order.</p>
-<nav class="letters" aria-label="Letters">
+<h1>${escapeHtml(t.navAz)}</h1>
+<p class="lede">${escapeHtml(fill(t.azLede, { count: entries.length }))}</p>
+<nav class="letters" aria-label="${escapeHtml(t.lettersLabel)}">
 ${letters.map((l) => `<a href="#letter-${l}">${l}</a>`).join("")}
 </nav>
 </div>
@@ -463,7 +667,7 @@ ${letters
     (l) => `<section class="section letter-section" id="letter-${l}">
 <header class="section-head"><h2>${l}</h2></header>
 <ul class="term-list">
-${(groups.get(l) ?? []).map((e) => termRow(e, false)).join("\n")}
+${(groups.get(l) ?? []).map((e) => termRow(site, e, false)).join("\n")}
 </ul>
 </section>`
   )
@@ -471,17 +675,17 @@ ${(groups.get(l) ?? []).map((e) => termRow(e, false)).join("\n")}
   });
 }
 
-function sidebar(sections: Section[], current: Entry): string {
-  return `<nav class="sidebar" aria-label="Curriculum">
-${sections
+function sidebar(site: Site, current: Entry): string {
+  return `<nav class="sidebar" aria-label="${escapeHtml(site.t.curriculumTitle)}">
+${site.sections
   .map(
     (s) => `<details${s === current.section ? " open" : ""}>
-<summary><span class="num" aria-hidden="true">${s.number}</span>${escapeHtml(s.title)}</summary>
+<summary><span class="num" aria-hidden="true">${s.number}</span>${escapeHtml(sectionTitle(site, s))}</summary>
 <ol>
 ${s.entries
   .map(
     (e) =>
-      `<li><a href="/${e.slug}"${e === current ? ' aria-current="page"' : ""}>${escapeHtml(e.term)}</a></li>`
+      `<li><a href="${url(site.lang, `/${e.slug}`)}"${e === current ? ' aria-current="page"' : ""}>${escapeHtml(e.term)}</a></li>`
   )
   .join("\n")}
 </ol>
@@ -491,47 +695,46 @@ ${s.entries
 </nav>`;
 }
 
-function entryPage(sections: Section[], entries: Entry[], e: Entry): string {
+function entryPage(site: Site, e: Entry): string {
+  const { lang, t, entries } = site;
   const prev = entries[e.position - 2];
   const next = entries[e.position];
   const mentionedIn = entries.filter((o) => o.linksTo.has(e.term));
 
   const backlinks = mentionedIn.length
     ? `<section class="backlinks">
-<h2>Mentioned in</h2>
+<h2>${escapeHtml(t.mentionedIn)}</h2>
 <ul>
-${mentionedIn.map((o) => `<li><a href="/${o.slug}">${escapeHtml(o.term)}</a></li>`).join("\n")}
+${mentionedIn.map((o) => `<li><a href="${url(lang, `/${o.slug}`)}">${escapeHtml(o.term)}</a></li>`).join("\n")}
 </ul>
 </section>`
     : "";
 
-  const pager = `<nav class="pager" aria-label="Previous and next term">
+  const pager = `<nav class="pager" aria-label="${escapeHtml(t.pagerLabel)}">
 ${
   prev
-    ? `<a class="prev" href="/${prev.slug}" rel="prev"><span class="dir">Previous</span><span class="term">${escapeHtml(prev.term)}</span></a>`
+    ? `<a class="prev" href="${url(lang, `/${prev.slug}`)}" rel="prev"><span class="dir">${escapeHtml(t.previous)}</span><span class="term">${escapeHtml(prev.term)}</span></a>`
     : "<span></span>"
 }
 ${
   next
-    ? `<a class="next" href="/${next.slug}" rel="next"><span class="dir">Next</span><span class="term">${escapeHtml(next.term)}</span></a>`
+    ? `<a class="next" href="${url(lang, `/${next.slug}`)}" rel="next"><span class="dir">${escapeHtml(t.next)}</span><span class="term">${escapeHtml(next.term)}</span></a>`
     : "<span></span>"
 }
 </nav>`;
 
-  return layout({
+  const sep = '<span class="sep" aria-hidden="true">·</span>';
+  return layout(site, {
     title: e.term,
-    description: e.description,
+    description: e.text[lang].description,
+    path: `/${e.slug}`,
     nav: null,
-    termCount: entries.length,
     main: `<div class="entry-layout">
-${sidebar(sections, e)}
+${sidebar(site, e)}
 <article class="entry">
-<p class="eyebrow"><a href="/curriculum#section-${e.section.number}">Section ${e.section.number} — ${escapeHtml(e.section.title)}</a><span class="sep" aria-hidden="true">·</span>Term ${e.position} of ${entries.length}<span class="sep" aria-hidden="true">·</span><a href="/?term=${e.slug}">View in map</a></p>
+<p class="eyebrow"><a href="${url(lang, `/curriculum#section-${e.section.number}`)}">${escapeHtml(fill(t.section, { n: e.section.number }))} — ${escapeHtml(sectionTitle(site, e.section))}</a>${sep}${escapeHtml(fill(t.termOf, { i: e.position, total: entries.length }))}${sep}<a href="${url(lang, `/?term=${e.slug}`)}">${escapeHtml(t.viewInMap)}</a></p>
 <h1>${escapeHtml(e.term)}</h1>
-<div class="prose">
-${e.bodyHtml}
-</div>
-${e.usageHtml}
+${entryHtml(site, e)}
 ${backlinks}
 ${pager}
 </article>
@@ -539,16 +742,33 @@ ${pager}
   });
 }
 
-function notFoundPage(entries: Entry[]): string {
-  return layout({
-    title: "Page not found",
-    description: "This page does not exist.",
+function notFoundHelp(site: Site): string {
+  return linkify(site.t.notFoundHelp, {
+    map: url(site.lang, "/"),
+    curriculum: url(site.lang, "/curriculum"),
+    az: url(site.lang, "/a-z"),
+  });
+}
+
+// One page answers every unknown address, whatever its language prefix, so it
+// carries the help text in every language.
+function notFoundPage(site: Site, others: Site[]): string {
+  const { t } = site;
+  return layout(site, {
+    title: t.notFoundTitle,
+    description: t.notFoundDescription,
+    path: "/",
     nav: null,
-    termCount: entries.length,
     main: `<div class="hero hero-compact">
-<h1>Page not found</h1>
-<p class="lede">There is no entry at this address.</p>
-<p>Search for a term above, or browse the <a href="/">map</a>, the <a href="/curriculum">curriculum</a> or the <a href="/a-z">A–Z list</a>.</p>
+<h1>${escapeHtml(t.notFoundTitle)}</h1>
+<p class="lede">${escapeHtml(t.notFoundLede)}</p>
+<p>${notFoundHelp(site)}</p>
+${others
+  .map(
+    (other) =>
+      `<p lang="${other.lang}">${escapeHtml(other.t.notFoundLede)} ${notFoundHelp(other)}</p>`
+  )
+  .join("\n")}
 </div>`,
   });
 }
@@ -566,36 +786,51 @@ function write(relPath: string, content: string): void {
 
 function main(): void {
   const { sections, entries } = load();
+  const sites: Site[] = LANGS.map((lang) => ({
+    lang,
+    t: STRINGS[lang],
+    sections,
+    entries,
+  }));
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "assets"), { recursive: true });
   copyFileSync(join(HERE, "styles.css"), join(OUT, "assets", "styles.css"));
   copyFileSync(join(HERE, "app.js"), join(OUT, "assets", "app.js"));
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
-
-  write("index.html", mapPage(entries));
-  write("graph.json", graphData(sections, entries));
-  write("curriculum/index.html", curriculumPage(sections, entries));
-  write("a-z/index.html", azPage(sections, entries));
-  write("404.html", notFoundPage(entries));
   write("favicon.svg", FAVICON);
-  for (const e of entries) {
-    write(`${e.slug}/index.html`, entryPage(sections, entries, e));
-  }
-  write(
-    "search.json",
-    JSON.stringify(
-      entries.map((e) => ({
-        t: e.term,
-        s: e.slug,
-        d: e.description,
-        c: e.section.title,
-      }))
-    )
-  );
 
+  for (const site of sites) {
+    // "" for the default language, "en/" for English.
+    const dir = BASE[site.lang].replace(/^\//, "");
+    const at = (path: string) => (dir ? `${dir}/${path}` : path);
+
+    write(at("index.html"), mapPage(site));
+    write(at("graph.json"), graphData(site));
+    write(at("curriculum/index.html"), curriculumPage(site));
+    write(at("a-z/index.html"), azPage(site));
+    for (const e of entries) {
+      write(at(`${e.slug}/index.html`), entryPage(site, e));
+    }
+    write(
+      at("search.json"),
+      JSON.stringify(
+        entries.map((e) => ({
+          t: e.term,
+          a: e.text[site.lang].name,
+          s: e.slug,
+          d: e.text[site.lang].description,
+        }))
+      )
+    );
+  }
+
+  const [first, ...rest] = sites;
+  if (first) write("404.html", notFoundPage(first, rest));
+
+  for (const w of warnings) console.warn(`warning: ${w}`);
   console.log(
-    `Built ${entries.length} entries in ${sections.length} sections into dist/`
+    `Built ${entries.length} entries in ${sections.length} sections, in ${LANGS.length} languages (${LANGS.join(", ")}), into dist/`
   );
 }
 

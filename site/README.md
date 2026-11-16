@@ -6,8 +6,10 @@
 | ------------------------ | ------------------------------------------------- |
 | `internal/Curriculum.md` | Sections and the order of terms                   |
 | `dictionary/*.md`        | One page per term, the search index, the term map |
+| `translations/vi/*.md`   | The Vietnamese text of each entry                 |
+| `site/strings.ts`        | Interface text and section titles, per language   |
 | `site/styles.css`        | Styles, copied to `dist/assets/`                  |
-| `site/app.js`            | Theme toggle and search, copied as written        |
+| `site/app.js`            | Theme, language toggle and search, copied as written |
 | `site/layout.ts`         | Places each term in 3D for the map, at build time |
 | `site/graph.js`          | Draws the map in the browser, copied as written   |
 
@@ -23,6 +25,50 @@ files, so editing an entry and rebuilding is the whole publishing step.
 | `/a-z`        | Every term in alphabetical order                    |
 | `/<slug>`     | One term, as a plain page that works without script |
 
+The Vietnamese pages are at these paths. The English pages are the same paths
+under `/en`, such as `/en/curriculum` and `/en/harness`.
+
+## Languages
+
+The site is built once per language. Vietnamese is the default and lives at the
+root. English lives under `/en`. The VI / EN toggle in the header links to the
+same page in the other language and keeps the current search and selected term.
+
+| Part                    | Where it comes from                                    |
+| ----------------------- | ------------------------------------------------------ |
+| Entry text, English     | `dictionary/<Term>.md`                                 |
+| Entry text, Vietnamese  | `translations/vi/<Term>.md`                            |
+| Interface text          | `STRINGS` in `site/strings.ts`                         |
+| Section titles          | `sectionTitles` in `site/strings.ts`                   |
+| Term names and slugs    | The English file name, the same in both languages      |
+
+A translation file has the same name and format as the English entry: a
+`description` in the frontmatter, links written as `./Other term.md`, and the
+`_Usage:_` marker before the dialogue. Keep the marker in English, because the
+build looks for it.
+
+A translation can also set `name` in the frontmatter, such as
+`name: Cửa sổ ngữ cảnh` for "Context window". The page title stays in English.
+The name shows under the title and in search results, and search matches it.
+Search ignores accents, so `ngu canh` finds `ngữ cảnh`.
+
+To translate or update an entry:
+
+1. Edit `dictionary/<Term>.md` if the English text changes.
+2. Make the same change in `translations/vi/<Term>.md`.
+3. Run `npm run build` and read the warnings.
+
+The build warns, and does not fail, when:
+
+- An entry has no translation. The Vietnamese page then shows the English text
+  with a notice above it.
+- A translation links to a different set of terms than the English entry.
+- A file in `translations/vi/` matches no entry.
+- A section title has no translation in `site/strings.ts`.
+
+To add a language, add its code to `LANGS`, `BASE` and `STRINGS` in
+`site/strings.ts`, and put its entries in `translations/<code>/`.
+
 ## The term map
 
 The home page shows every term as a point in 3D. Two terms are linked when one
@@ -36,8 +82,8 @@ section forms a loose region.
   `/?term=harness` selects a term, `/?q=harnes` highlights search matches, and
   the two combine as `/?q=harnes&term=harness`.
 
-`site/build.ts` writes `dist/graph.json` with each term's position, links and
-rendered text. Positions come from a seeded layout, so the same entries always
+`site/build.ts` writes one `graph.json` per language (`dist/graph.json` and
+`dist/en/graph.json`) with each term's position, links and rendered text. Positions come from a seeded layout, so the same entries always
 give the same map. The map has no runtime dependencies: `site/graph.js` draws
 on a 2D canvas with its own perspective projection.
 

@@ -283,9 +283,15 @@ h2 {
 }
 
 #search-results .term {
-  display: block;
   font-family: var(--serif);
   font-weight: 700;
+}
+
+/* The term's name in the page's language, after its English name. */
+#search-results .alt {
+  margin-left: 8px;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 #search-results .desc {
@@ -316,6 +322,39 @@ h2 {
 
 .icon-button:hover {
   color: var(--ink);
+}
+
+/* Two links styled as one switch. The current language is the filled half. */
+.lang-toggle {
+  flex: none;
+  display: flex;
+  height: 38px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lang-toggle a {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+.lang-toggle a:hover {
+  color: var(--ink);
+}
+
+.lang-toggle a[aria-current="true"] {
+  color: var(--ink);
+  background: var(--accent-soft);
 }
 
 /* -------------------------------------------------------------------- hero */
@@ -560,6 +599,14 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+/* The term's name in the page's language, under its English name. */
+.term-alt {
+  margin: 6px 0 0;
+  font-size: 1.1875rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
 .prose {
   margin-top: 24px;
   font-size: 1.0625rem;
@@ -772,6 +819,16 @@ tr:last-child td {
   overflow-wrap: anywhere;
 }
 
+/* Shown above an entry that has no translation in the page's language. */
+.notice {
+  margin: 20px 0 0;
+  padding: 10px 14px;
+  font-size: 0.9375rem;
+  color: var(--muted);
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+
 /* ------------------------------------------------------------------ footer */
 
 .site-footer {
@@ -808,10 +865,10 @@ tr:last-child td {
   .header-inner {
     position: relative;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
-      "brand brand theme"
-      "nav search search";
+      "brand brand lang theme"
+      "nav search search search";
     gap: 8px 12px;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -853,6 +910,10 @@ tr:last-child td {
 
   .header-inner .icon-button {
     grid-area: theme;
+  }
+
+  .lang-toggle {
+    grid-area: lang;
   }
 
   html {
