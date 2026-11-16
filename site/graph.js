@@ -48,6 +48,12 @@
   var WIDE = 900;
 
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  // URL prefix of this page's language: "" for the default one, "/en" for
+  // English. Set by site/build.ts.
+  var base = document.documentElement.dataset.base || "";
+  var home = base || "/";
+  // Filled from graph.json, in the page's language.
+  var eyebrowTemplate = "";
   var baseTitle = document.title;
 
   var nodes = [];
@@ -652,7 +658,7 @@
   // -------------------------------------------------------------- selection
 
   function termUrl(slug) {
-    return "/?term=" + encodeURIComponent(slug);
+    return home + "?term=" + encodeURIComponent(slug);
   }
 
   function fillPager(link, index) {
@@ -665,19 +671,22 @@
 
   function renderPanel(index) {
     var n = nodes[index];
-    panel.eyebrow.textContent =
-      "Section " +
-      n.section +
-      " — " +
-      sections[n.section] +
-      " · Term " +
-      (index + 1) +
-      " of " +
-      nodes.length;
+    var values = {
+      n: n.section,
+      title: sections[n.section],
+      i: index + 1,
+      total: nodes.length,
+    };
+    panel.eyebrow.textContent = eyebrowTemplate.replace(
+      /\{(\w+)\}/g,
+      function (whole, key) {
+        return key in values ? values[key] : whole;
+      }
+    );
     panel.title.textContent = n.term;
     // Built from this repository's markdown by site/build.ts.
     panel.content.innerHTML = n.html;
-    panel.page.href = "/" + n.slug;
+    panel.page.href = base + "/" + n.slug;
 
     panel.related.textContent = "";
     n.near.forEach(function (other) {
@@ -761,10 +770,14 @@
     }
     var url = new URL(link.href, window.location.href);
     if (url.origin !== window.location.origin) return;
-    var slug =
-      url.pathname === "/"
-        ? url.searchParams.get("term")
-        : url.pathname.replace(/^\/|\/$/g, "");
+    // A link to another language's pages is a real navigation.
+    var path = url.pathname;
+    if (base) {
+      if (path !== base && path.indexOf(base + "/") !== 0) return;
+      path = path.slice(base.length);
+    }
+    path = path.replace(/^\/|\/$/g, "");
+    var slug = path === "" ? url.searchParams.get("term") : path;
     var index = bySlug[slug];
     if (index === undefined) return;
     event.preventDefault();
@@ -781,16 +794,26 @@
 
   // ------------------------------------------------------------- search, URL
 
+  // Lower-case and strip accents, so "ngu canh" finds "ngữ cảnh".
+  function fold(text) {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+  }
+
   function setQuery(text) {
     query = (text || "").trim();
     if (!query) {
       matches = null;
     } else {
-      var q = query.toLowerCase();
+      var q = fold(query);
       matches = nodes.map(function (n) {
         return (
-          n.term.toLowerCase().indexOf(q) !== -1 ||
-          n.description.toLowerCase().indexOf(q) !== -1
+          fold(n.term).indexOf(q) !== -1 ||
+          fold(n.alias).indexOf(q) !== -1 ||
+          fold(n.description).indexOf(q) !== -1
         );
       });
     }
@@ -845,6 +868,7 @@
   // ------------------------------------------------------------------ start
 
   function start(data) {
+    eyebrowTemplate = (data.ui && data.ui.eyebrow) || "";
     data.sections.forEach(function (s) {
       sections[s.n] = s.t;
     });
@@ -853,6 +877,7 @@
       return {
         slug: raw.s,
         term: raw.t,
+        alias: raw.a || "",
         description: raw.d,
         section: raw.c,
         x: raw.p[0],
@@ -920,19 +945,15 @@
     wake();
   }
 
-  fetch("/graph.json")
+  fetch(base + "/graph.json")
     .then(function (response) {
       if (!response.ok) throw new Error("graph data: " + response.status);
       return response.json();
     })
     .then(start)
     .catch(function () {
-      if (!statusLine) return;
-      statusLine.textContent = "The map could not load. ";
-      var link = document.createElement("a");
-      link.href = "/curriculum";
-      link.textContent = "Read the curriculum list";
-      statusLine.appendChild(link);
-      statusLine.appendChild(document.createTextNode(" instead."));
+      // The sentence that follows already points to the curriculum list.
+      var text = document.getElementById("graph-status-text");
+      if (statusLine && text) text.textContent = statusLine.dataset.error;
     });
 })();

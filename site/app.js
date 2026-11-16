@@ -1,8 +1,27 @@
-// Theme toggle and term search. No dependencies.
+// Theme toggle, language toggle and term search. No dependencies.
 
 (function () {
-  // ---------------------------------------------------------------- theme
   var root = document.documentElement;
+  // URL prefix of this page's language: "" for the default one, "/en" for
+  // English. Set by site/build.ts.
+  var base = root.dataset.base || "";
+
+  // ------------------------------------------------------------- language
+  // Switching language keeps the current search and selection: the query
+  // string and fragment travel with the link.
+  var languages = document.getElementById("lang-toggle");
+  if (languages) {
+    languages.addEventListener("click", function (event) {
+      var link = event.target.closest("a[href]");
+      if (!link) return;
+      var target = new URL(link.href, window.location.href);
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      link.href = target.href;
+    });
+  }
+
+  // ---------------------------------------------------------------- theme
   var toggle = document.getElementById("theme-toggle");
 
   function activeTheme() {
@@ -38,7 +57,7 @@
   function loadIndex() {
     if (index) return Promise.resolve(index);
     if (!loading) {
-      loading = fetch("/search.json")
+      loading = fetch(base + "/search.json")
         .then(function (res) {
           if (!res.ok) throw new Error("search index: " + res.status);
           return res.json();
@@ -55,17 +74,34 @@
     return loading;
   }
 
-  function rank(item, q) {
-    var term = item.t.toLowerCase();
-    if (term === q) return 0;
-    if (term.indexOf(q) === 0) return 1;
-    var words = term.split(/[\s-]+/);
+  // Lower-case and strip accents, so "ngu canh" finds "ngữ cảnh".
+  function fold(text) {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+  }
+
+  function rankName(name, q) {
+    if (name === q) return 0;
+    if (name.indexOf(q) === 0) return 1;
+    var words = name.split(/[\s-]+/);
     for (var i = 0; i < words.length; i++) {
       if (words[i].indexOf(q) === 0) return 2;
     }
-    if (term.indexOf(q) !== -1) return 3;
-    if (item.d.toLowerCase().indexOf(q) !== -1) return 4;
-    return -1;
+    return name.indexOf(q) !== -1 ? 3 : -1;
+  }
+
+  // item.a is the term's name in the page's language, when it has one.
+  function rank(item, q) {
+    var best = rankName(fold(item.t), q);
+    if (item.a) {
+      var other = rankName(fold(item.a), q);
+      if (other !== -1 && (best === -1 || other < best)) best = other;
+    }
+    if (best !== -1) return best;
+    return fold(item.d).indexOf(q) !== -1 ? 4 : -1;
   }
 
   function close() {
@@ -118,7 +154,7 @@
     active = -1;
     input.removeAttribute("aria-activedescendant");
     if (!results.length) {
-      message("No term matches “" + q + "”.");
+      message((input.dataset.noMatch || "").replace("{q}", input.value.trim()));
       return;
     }
 
@@ -130,7 +166,7 @@
       li.setAttribute("aria-selected", "false");
 
       var a = document.createElement("a");
-      a.href = "/" + item.s;
+      a.href = base + "/" + item.s;
       a.dataset.slug = item.s;
       a.tabIndex = -1;
 
@@ -143,6 +179,12 @@
       desc.textContent = item.d;
 
       a.appendChild(term);
+      if (item.a) {
+        var alt = document.createElement("span");
+        alt.className = "alt";
+        alt.textContent = item.a;
+        a.appendChild(alt);
+      }
       a.appendChild(desc);
       li.appendChild(a);
       list.appendChild(li);
@@ -159,7 +201,7 @@
       cancelable: true,
     });
     if (document.dispatchEvent(event)) {
-      window.location.href = "/" + slug;
+      window.location.href = base + "/" + slug;
       return;
     }
     close();
@@ -172,7 +214,7 @@
         detail: { query: input.value.trim() },
       })
     );
-    var q = input.value.trim().toLowerCase();
+    var q = fold(input.value.trim());
     if (!q) {
       close();
       return;
@@ -180,10 +222,10 @@
     loadIndex().then(
       function () {
         // Ignore a response that arrives after the query changed.
-        if (input.value.trim().toLowerCase() === q) render(q);
+        if (fold(input.value.trim()) === q) render(q);
       },
       function () {
-        message("Search could not load. Try the A–Z list.");
+        message(input.dataset.error || "");
       }
     );
   }
