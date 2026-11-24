@@ -14,9 +14,13 @@
 | `site/graph.js`          | Draws the map in the browser, copied as written   |
 | `site/learn.js`          | Runs the Learn view in the browser, copied as written |
 | `site/learn.css`         | Styles of the Learn view, loaded after `styles.css` |
+| `site/learn-store.js`    | Keeps Learn progress in IndexedDB and syncs it, copied as written |
+| `site/sync.ts`           | Address and public key of the Supabase project used for sync |
 
-There is no database and no server code. Every page is built from the markdown
-files, so editing an entry and rebuilding is the whole publishing step.
+There is no server code. Every page is built from the markdown files, so
+editing an entry and rebuilding is the whole publishing step. The only data
+that is not in this repository is the Learn progress of visitors who sign in:
+see [Progress and sync](#progress-and-sync).
 
 ## Pages
 
@@ -58,9 +62,7 @@ after it. The diagram marks the terms that the current step mentions.
 
 Addresses are `/learn#/<slug>` for a term and `/learn#/<slug>/<n>` for step
 `n` of it. Left and right arrow keys change step. A term counts as done when
-the visitor reaches its recap. Progress and the last place are kept in the
-browser's `localStorage` (`learn:done`, `learn:last`) and are shared by both
-languages. Nothing is sent to a server.
+the visitor reaches its recap.
 
 The look of this view is modelled on the course at
 <https://designed-to-scale.vercel.app> by Dilum Sanjaya: warm paper colours,
@@ -68,6 +70,78 @@ ink outlines, hard offset shadows. The code and the diagram are written for
 this site. The typeface is JetBrains Mono (SIL Open Font License 1.1). The
 build copies it from the `@fontsource-variable/jetbrains-mono` package to
 `dist/assets/fonts/`.
+
+## Progress and sync
+
+`site/learn-store.js` keeps which terms a visitor finished and where they
+stopped. Both languages share it.
+
+**In the browser.** Progress is always written to IndexedDB, in the database
+`dictionary-of-ai-coding`:
+
+| Store      | Key   | Holds                                                    |
+| ---------- | ----- | -------------------------------------------------------- |
+| `progress` | `id`  | One record per anonymous id: `done`, `last`, `resetAt`, `owner`, `dirty` |
+| `meta`     | `key` | `active`: the id in use. `auth:*`: the sign-in session   |
+
+The id is a random UUID made in the browser. It says nothing about the
+visitor. Until they sign in, nothing is sent anywhere. Progress that an
+earlier version kept in `localStorage` (`learn:done`, `learn:last`) is moved
+into the record on the first visit and then removed.
+
+**In the account.** "Sign in with Google" signs the visitor in through
+Supabase Auth. From then on the record is also kept in the Supabase table
+`learn_progress`, under the same UUID as its primary key:
+
+| Column       | Holds                                                  |
+| ------------ | ------------------------------------------------------ |
+| `id`         | The anonymous UUID from the browser. Primary key       |
+| `user_id`    | The account that owns the row, filled from the session |
+| `done`       | `{ "<slug>": <time finished, ms> }`                     |
+| `last`       | `{ "p": "<slug>/<step>", "t": <ms> }`                   |
+| `reset_at`   | Time of the last reset, in ms. Earlier terms do not count |
+| `updated_at` | When the row was last written                          |
+
+An account has one row per browser it signed in on. The site reads all of
+them and merges them:
+
+- A term is done if any row finished it after the latest reset.
+- The place is the most recent one.
+- A reset made while signed in clears the account on every device. A reset
+  made before signing in clears that browser only.
+- Signing out leaves the account's record stored but puts a new, empty
+  anonymous record in use. Signing in again picks the account's record up and
+  folds in what was learned in between.
+
+A change is sent a few seconds after it happens, and again when the tab is
+hidden. The account is read when the page loads, after sign-in, and when the
+tab comes back into view.
+
+Row level security lets an account read and write only its own rows; a
+visitor who is not signed in has no access to the table. The rules are in
+`supabase/migrations/`. The address and the publishable key in `site/sync.ts`
+are public values. Leave either empty to build the site without sign-in.
+
+The Supabase client (`@supabase/supabase-js`, MIT) is copied to
+`dist/assets/vendor/` by the build and is loaded only when a session is
+stored or the visitor presses the sign-in button.
+
+### Setting up Google sign-in
+
+This is done once per Supabase project, outside this repository:
+
+1. In Google Cloud Console, under **APIs & Services → Credentials**, create
+   an **OAuth client ID** of type **Web application**. Add
+   `https://<project-ref>.supabase.co/auth/v1/callback` as an **Authorized
+   redirect URI**.
+2. In the Supabase dashboard, under **Authentication → Sign In / Providers →
+   Google**, switch the provider on and paste the client ID and client secret.
+3. Under **Authentication → URL Configuration**, set **Site URL** to the
+   production address and add `<address>/**` to **Redirect URLs** for every
+   address the site is served from.
+
+While the Google provider is off, the sign-in button shows a message instead
+of leaving the page.
 
 ## Languages
 
