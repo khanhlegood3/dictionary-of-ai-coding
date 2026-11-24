@@ -845,6 +845,13 @@ tr:last-child td {
   max-width: 44rem;
 }
 
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
 /* -------------------------------------------------------------- responsive */
 
 @media (max-width: 900px) {
