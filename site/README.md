@@ -16,6 +16,9 @@
 | `site/learn.css`         | Styles of the Learn view, loaded after `styles.css` |
 | `site/learn-store.js`    | Keeps Learn progress in IndexedDB and syncs it, copied as written |
 | `site/sync.ts`           | Address and public key of the Supabase project used for sync |
+| `internal/adr/*.md`      | The decision records listed on `/tasks`           |
+| `site/tasks.js`          | Loads the GitHub issues on `/tasks` in the browser, copied as written |
+| `site/tasks.css`         | Styles of `/tasks`, loaded after `styles.css`     |
 
 There is no server code. Every page is built from the markdown files, so
 editing an entry and rebuilding is the whole publishing step. The only data
@@ -30,6 +33,7 @@ see [Progress and sync](#progress-and-sync).
 | `/learn`      | The course: one term at a time, step by step        |
 | `/curriculum` | Every term in teaching order, grouped by section    |
 | `/a-z`        | Every term in alphabetical order                    |
+| `/tasks`      | The project's open tasks and decision records       |
 | `/<slug>`     | One term, as a plain page that works without script |
 
 The Vietnamese pages are at these paths. The English pages are the same paths
@@ -142,6 +146,67 @@ This is done once per Supabase project, outside this repository:
 
 While the Google provider is off, the sign-in button shows a message instead
 of leaving the page.
+
+## Tasks page
+
+`/tasks` shows the work of the project to the owner and to investors. It reads
+two things and stores nothing itself. See
+`internal/adr/0005-tasks-page-reads-github-issues-and-adrs.md`.
+
+| Shown on the page | Where it comes from                              | When it changes         |
+| ----------------- | ------------------------------------------------ | ----------------------- |
+| Tasks             | The GitHub issues of the repository in `REPO`    | When the page is opened |
+| Decisions (ADR)   | The files in `internal/adr/`                     | At the next deploy      |
+
+`REPO` is a constant at the top of `site/build.ts`. The link in the footer of
+every page with a footer leads to `/tasks`.
+
+**Tasks.** The page asks the public GitHub API for the issues, without a token.
+Pull requests are left out.
+
+| Issue on GitHub                     | Status on the page |
+| ----------------------------------- | ------------------ |
+| Open                                | Open               |
+| Open, with the label `in-progress`  | In progress        |
+| Closed                              | Done               |
+
+"Open" in the counts and in the left column includes the tasks in progress.
+The other labels of an issue show as small tags, and the left column filters by
+them. `tasksLabelNames` in `site/strings.ts` gives a label a name per language.
+A label that is not listed there shows as written. The chosen view and label
+are kept in the address (`?view=done&label=bug`), so the Share button gives a
+link to the same list.
+
+To manage tasks, use GitHub: "Add task" opens the new issue form, and a task's
+name opens its issue. Issues must be switched on for the repository (Settings,
+General, Features).
+
+Without a token GitHub allows 60 requests per hour from one IP address. The
+page keeps a fetched list for two minutes in `sessionStorage`. The build also
+tries to save a copy of the list in the page. When the browser cannot reach
+GitHub, the page shows the newest copy it has and says when the copy was made.
+The build goes on without the copy if GitHub does not answer. Set
+`GITHUB_TOKEN` in the build environment to make the copy reliable.
+
+**Decisions.** Each file in `internal/adr/` is named `<4 digits>-<words>.md` and
+starts with frontmatter:
+
+```
+---
+status: proposed
+date: 2026-11-24
+title_vi: Tên quyết định bằng tiếng Việt
+summary: One or two sentences, in English.
+summary_vi: Một hai câu bằng tiếng Việt.
+---
+
+# The title, in English
+```
+
+`status` is `proposed`, `accepted`, `rejected` or `superseded`. `status` and
+`date` are required, and the build stops when one is missing or misspelt. The
+Vietnamese page falls back to the English title and summary. A `proposed`
+decision is listed first and counted under "Awaiting decision".
 
 ## Languages
 

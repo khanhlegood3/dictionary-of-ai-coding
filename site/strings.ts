@@ -4,6 +4,9 @@
 
 export type Lang = "vi" | "en";
 
+/** The states a decision record in internal/adr/ can be in. */
+export type AdrStatus = "proposed" | "accepted" | "rejected" | "superseded";
+
 /** The first language is the default one, published at the site root. */
 export const LANGS: Lang[] = ["vi", "en"];
 
@@ -127,6 +130,49 @@ export type Strings = {
   learnPrereqNone: string;
   learnDone: string;
   learnTermDone: string;
+
+  tasksNav: string;
+  tasksTitle: string;
+  /** "{site}" is replaced by the site name. */
+  tasksDescription: string;
+  tasksLede: string;
+  tasksSidebar: string;
+  tasksProject: string;
+  tasksViews: string;
+  tasksOpen: string;
+  tasksDoing: string;
+  tasksDone: string;
+  tasksAll: string;
+  tasksLabels: string;
+  tasksListTitle: string;
+  tasksAdd: string;
+  tasksShare: string;
+  tasksCopied: string;
+  tasksColTask: string;
+  tasksColAssignee: string;
+  tasksColStatus: string;
+  tasksColUpdated: string;
+  tasksUnassigned: string;
+  /** "{count}" is replaced by a number. */
+  tasksComments: string;
+  tasksEmpty: string;
+  tasksEmptyOpen: string;
+  tasksEmptyAll: string;
+  tasksLoading: string;
+  /** "{time}" is replaced by a time of day, or a date and a time. */
+  tasksUpdated: string;
+  tasksStale: string;
+  tasksError: string;
+  tasksRefresh: string;
+  tasksOnGithub: string;
+  /** "{link}" wraps the words that link to the issues on GitHub. */
+  tasksNoScript: string;
+  tasksDecisions: string;
+  tasksDecisionsLede: string;
+  tasksPending: string;
+  tasksAdrStatus: Record<AdrStatus, string>;
+  /** Names shown for known issue labels. Other labels show as written. */
+  tasksLabelNames: Record<string, string>;
 
   notFoundTitle: string;
   notFoundDescription: string;
@@ -261,6 +307,64 @@ export const STRINGS: Record<Lang, Strings> = {
     learnPrereqNone: "Không cần biết trước thuật ngữ nào.",
     learnDone: "đã học",
     learnTermDone: "Đã học xong: {term}",
+
+    tasksNav: "Công việc",
+    tasksTitle: "Bảng công việc",
+    tasksDescription:
+      "Các task đang mở và các quyết định của dự án {site}, đọc từ GitHub.",
+    tasksLede:
+      "Các task và quyết định của dự án, đọc trực tiếp từ GitHub. Bấm vào một task để mở issue của nó.",
+    tasksSidebar: "Bộ lọc task",
+    tasksProject: "Dự án",
+    tasksViews: "Xem",
+    tasksOpen: "Đang mở",
+    tasksDoing: "Đang làm",
+    tasksDone: "Đã xong",
+    tasksAll: "Tất cả",
+    tasksLabels: "Nhãn",
+    tasksListTitle: "Task",
+    tasksAdd: "Thêm task",
+    tasksShare: "Chia sẻ",
+    tasksCopied: "Đã chép liên kết",
+    tasksColTask: "Tên task",
+    tasksColAssignee: "Người phụ trách",
+    tasksColStatus: "Trạng thái",
+    tasksColUpdated: "Cập nhật",
+    tasksUnassigned: "Chưa giao",
+    tasksComments: "{count} bình luận",
+    tasksEmpty: "Không có task nào ở mục này.",
+    tasksEmptyOpen: "Không còn task nào đang mở.",
+    tasksEmptyAll: "Kho này chưa có issue nào trên GitHub.",
+    tasksLoading: "Đang tải từ GitHub…",
+    tasksUpdated: "Cập nhật lúc {time}",
+    tasksStale:
+      "Không tải được dữ liệu mới từ GitHub. Đang hiện bản lưu lúc {time}.",
+    tasksError: "Không tải được danh sách task từ GitHub.",
+    tasksRefresh: "Làm mới",
+    tasksOnGithub: "Xem trên GitHub",
+    tasksNoScript:
+      "Trang này cần JavaScript để tải danh sách task. {link}Xem các issue trên GitHub{/link}.",
+    tasksDecisions: "Quyết định (ADR)",
+    tasksDecisionsLede:
+      "Mỗi quyết định về kiến trúc là một tệp trong internal/adr/. Quyết định ở trạng thái đề xuất đang chờ chủ dự án chọn.",
+    tasksPending: "Chờ quyết định",
+    tasksAdrStatus: {
+      proposed: "Đề xuất",
+      accepted: "Đã chấp nhận",
+      rejected: "Đã bác",
+      superseded: "Đã thay thế",
+    },
+    tasksLabelNames: {
+      bug: "Lỗi",
+      documentation: "Tài liệu",
+      enhancement: "Cải tiến",
+      question: "Câu hỏi",
+      "needs-triage": "Chờ phân loại",
+      "needs-info": "Chờ thông tin",
+      "ready-for-agent": "Giao cho agent",
+      "ready-for-human": "Cần người làm",
+      wontfix: "Không làm",
+    },
 
     notFoundTitle: "Không tìm thấy trang",
     notFoundDescription: "Trang này không tồn tại.",
@@ -397,6 +501,64 @@ export const STRINGS: Record<Lang, Strings> = {
     learnPrereqNone: "No earlier term is needed.",
     learnDone: "done",
     learnTermDone: "Finished: {term}",
+
+    tasksNav: "Tasks",
+    tasksTitle: "Task board",
+    tasksDescription:
+      "The open tasks and the decisions of the {site} project, read from GitHub.",
+    tasksLede:
+      "The tasks and decisions of the project, read from GitHub. Select a task to open its issue.",
+    tasksSidebar: "Task filters",
+    tasksProject: "Project",
+    tasksViews: "View",
+    tasksOpen: "Open",
+    tasksDoing: "In progress",
+    tasksDone: "Done",
+    tasksAll: "All",
+    tasksLabels: "Labels",
+    tasksListTitle: "Tasks",
+    tasksAdd: "Add task",
+    tasksShare: "Share",
+    tasksCopied: "Link copied",
+    tasksColTask: "Task name",
+    tasksColAssignee: "Assignee",
+    tasksColStatus: "Status",
+    tasksColUpdated: "Updated",
+    tasksUnassigned: "Unassigned",
+    tasksComments: "{count} comments",
+    tasksEmpty: "No tasks here.",
+    tasksEmptyOpen: "No open tasks.",
+    tasksEmptyAll: "This repository has no issues on GitHub yet.",
+    tasksLoading: "Loading from GitHub…",
+    tasksUpdated: "Updated at {time}",
+    tasksStale:
+      "Could not load new data from GitHub. Showing the copy saved at {time}.",
+    tasksError: "Could not load the task list from GitHub.",
+    tasksRefresh: "Refresh",
+    tasksOnGithub: "View on GitHub",
+    tasksNoScript:
+      "This page needs JavaScript to load the task list. {link}View the issues on GitHub{/link}.",
+    tasksDecisions: "Decisions (ADR)",
+    tasksDecisionsLede:
+      "Each architecture decision is a file in internal/adr/. A proposed decision is waiting for the owner to choose.",
+    tasksPending: "Awaiting decision",
+    tasksAdrStatus: {
+      proposed: "Proposed",
+      accepted: "Accepted",
+      rejected: "Rejected",
+      superseded: "Superseded",
+    },
+    tasksLabelNames: {
+      bug: "Bug",
+      documentation: "Docs",
+      enhancement: "Improvement",
+      question: "Question",
+      "needs-triage": "Needs triage",
+      "needs-info": "Needs info",
+      "ready-for-agent": "Ready for agent",
+      "ready-for-human": "Needs a person",
+      wontfix: "Won't do",
+    },
 
     notFoundTitle: "Page not found",
     notFoundDescription: "This page does not exist.",

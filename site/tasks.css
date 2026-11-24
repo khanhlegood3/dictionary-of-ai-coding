@@ -1,0 +1,730 @@
+/* The tasks page: the repository's GitHub issues and its decision records.
+   Loaded after styles.css, on /tasks only. */
+
+.page-tasks {
+  --tk-doing: #7d5200;
+  --tk-doing-soft: #f7ecd0;
+  --tk-done: #2b6636;
+  --tk-done-soft: #e3f0e2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .page-tasks {
+    --tk-doing: #e5b85c;
+    --tk-doing-soft: #3a2e14;
+    --tk-done: #8fcf9a;
+    --tk-done-soft: #1c2e20;
+  }
+}
+
+:root[data-theme="dark"] .page-tasks {
+  --tk-doing: #e5b85c;
+  --tk-doing-soft: #3a2e14;
+  --tk-done: #8fcf9a;
+  --tk-done-soft: #1c2e20;
+}
+
+/* Several blocks below set `display`, which would beat the attribute. */
+.page-tasks .tk [hidden] {
+  display: none;
+}
+
+.tk {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+  padding-top: 40px;
+}
+
+/* ----------------------------------------------------------------- sidebar */
+
+.tk-side {
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+  display: grid;
+  gap: 24px;
+}
+
+.tk-side__head {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tk-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.tk-project svg {
+  flex: none;
+}
+
+.tk-project:hover {
+  text-decoration: underline;
+}
+
+.tk-views,
+.tk-labels {
+  display: grid;
+  gap: 2px;
+  margin: 0 -10px;
+}
+
+.tk-view,
+.tk-label,
+.tk-side__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tk-side__link {
+  width: auto;
+  margin: 0 -10px;
+}
+
+.tk-view:hover,
+.tk-label:hover,
+.tk-side__link:hover {
+  background: var(--accent-soft);
+}
+
+.tk-view[aria-pressed="true"],
+.tk-label[aria-pressed="true"] {
+  background: var(--surface);
+  border-color: var(--line);
+  font-weight: 600;
+}
+
+.tk-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tk-dot--doing {
+  background: var(--tk-doing);
+}
+
+.tk-dot--done {
+  background: var(--tk-done);
+}
+
+.tk-dot--all {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--muted);
+}
+
+/* ------------------------------------------------------------------ header */
+
+.tk-main {
+  min-width: 0;
+}
+
+.tk-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 32px;
+  flex-wrap: wrap;
+}
+
+.tk-head__text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.tk-date {
+  margin: 0 0 6px;
+  min-height: 1.4em;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.tk-head h1 {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+}
+
+.tk-lede {
+  margin: 12px 0 0;
+  max-width: 36rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.tk-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tk-btn:hover {
+  border-color: var(--muted);
+}
+
+.tk-btn--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.tk-btn--primary:hover {
+  border-color: var(--ink);
+}
+
+.tk-btn--quiet {
+  min-height: 32px;
+  padding: 0 10px;
+  background: none;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.tk-btn--quiet:hover {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------- stats */
+
+.tk-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-stat {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.tk-stat__value {
+  font-family: var(--serif);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-stat__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.tk-stat__label::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tk-stat--doing .tk-stat__label::before,
+.tk-stat--pending .tk-stat__label::before {
+  background: var(--tk-doing);
+}
+
+.tk-stat--done .tk-stat__label::before {
+  background: var(--tk-done);
+}
+
+.tk-stat--pending .tk-stat__label::before {
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.tk-panel {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  scroll-margin-top: calc(var(--header-height) + 16px);
+}
+
+.tk-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  padding: 16px 18px 14px;
+}
+
+.tk-panel__head h2 {
+  font-size: 1.375rem;
+}
+
+.tk-sync {
+  margin: 0 0 0 auto;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.tk-panel__lede {
+  margin: -6px 18px 16px;
+  max-width: 40rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.tk-notice {
+  margin: 0 18px 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--tk-doing-soft);
+  color: var(--tk-doing);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.tk-notice a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.tk-empty {
+  margin: 0;
+  padding: 32px 18px 36px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------- table */
+
+.tk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.tk-table th {
+  padding: 9px 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tk-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.tk-table th:first-child,
+.tk-table td:first-child {
+  padding-left: 18px;
+}
+
+.tk-table th:last-child,
+.tk-table td:last-child {
+  padding-right: 18px;
+}
+
+.tk-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tk-task__title {
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.tk-task__title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.tk-task__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 6px;
+}
+
+.tk-chip {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tk-comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.tk-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.tk-person + .tk-person {
+  margin-top: 6px;
+}
+
+.tk-person img {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.tk-person--none {
+  color: var(--muted);
+}
+
+.tk-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.tk-pill--doing,
+.tk-pill--proposed {
+  background: var(--tk-doing-soft);
+  color: var(--tk-doing);
+}
+
+.tk-pill--done,
+.tk-pill--accepted {
+  background: var(--tk-done-soft);
+  color: var(--tk-done);
+}
+
+.tk-pill--rejected,
+.tk-pill--superseded {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.tk-when {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- decisions */
+
+.tk-adrs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0 18px 18px;
+  list-style: none;
+}
+
+.tk-adr {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.tk-adr--proposed {
+  border-color: var(--tk-doing);
+}
+
+.tk-adr__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tk-adr h3 {
+  margin: 10px 0 0;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+
+.tk-adr h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.tk-adr h3 a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.tk-adr p {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.tk-adr .tk-adr__date {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 0.75rem;
+}
+
+/* -------------------------------------------------------------- responsive */
+
+/* One column. The filters move between the numbers and the list. */
+@media (max-width: 959.98px) {
+  .tk {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding-top: 28px;
+  }
+
+  .tk-main {
+    display: contents;
+  }
+
+  .tk-head {
+    order: 1;
+  }
+
+  .tk-stats {
+    order: 2;
+  }
+
+  .tk-side {
+    order: 3;
+    position: static;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .tk-panel {
+    order: 4;
+    margin-top: 16px;
+  }
+
+  .tk-side__group--project,
+  .tk-side__group--links {
+    display: none;
+  }
+
+  .tk-side__head {
+    margin-bottom: 6px;
+  }
+
+  .tk-views,
+  .tk-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .tk-view,
+  .tk-label {
+    width: auto;
+    gap: 8px;
+    padding: 6px 12px;
+    border-color: var(--line);
+    border-radius: 999px;
+    font-size: 0.875rem;
+  }
+
+  .tk-view[aria-pressed="true"],
+  .tk-label[aria-pressed="true"] {
+    border-color: var(--ink);
+  }
+
+  .tk-count {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 719.98px) {
+  .tk-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .tk-stat {
+    padding: 14px;
+  }
+
+  .tk-stat__value {
+    font-size: 1.875rem;
+  }
+
+  /* Each task becomes a block: the name, then the other cells on one line. */
+  .tk-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .tk-table,
+  .tk-table tbody {
+    display: block;
+  }
+
+  .tk-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .tk-table td,
+  .tk-table td:first-child,
+  .tk-table td:last-child {
+    padding: 0;
+    border: 0;
+  }
+
+  .tk-table td:first-child {
+    flex: 0 0 100%;
+  }
+
+  .tk-table td:last-child {
+    margin-left: auto;
+  }
+
+  .tk-table td:nth-child(2) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .tk-person + .tk-person {
+    margin-top: 0;
+  }
+
+  .tk-panel__head {
+    padding: 14px 16px 12px;
+  }
+
+  .tk-panel__lede {
+    margin: -4px 16px 14px;
+  }
+
+  .tk-notice {
+    margin: 0 16px 12px;
+  }
+
+  .tk-adrs {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 16px 16px;
+  }
+
+  .tk-actions {
+    width: 100%;
+  }
+
+  .tk-actions .tk-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+@media print {
+  .tk-side,
+  .tk-actions,
+  #tk-refresh {
+    display: none;
+  }
+}

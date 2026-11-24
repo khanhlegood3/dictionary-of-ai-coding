@@ -2,6 +2,8 @@
 // Build a static website into dist/ from internal/Curriculum.md,
 // dictionary/*.md and translations/vi/*.md.
 // The markdown files are the only data source. There is no database.
+// The tasks page also reads internal/adr/*.md, and the build saves a copy of
+// the repository's GitHub issues in it when GitHub can be reached.
 //
 // The site is built once per language. Vietnamese is the default and lives at
 // the root; English lives under /en. Both share the same terms, slugs and map.
@@ -19,7 +21,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
 import { layoutGraph } from "./layout";
-import { BASE, LANGS, STRINGS, fill, type Lang, type Strings } from "./strings";
+import {
+  BASE,
+  LANGS,
+  STRINGS,
+  fill,
+  type AdrStatus,
+  type Lang,
+  type Strings,
+} from "./strings";
 import { SYNC } from "./sync";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +40,10 @@ const DICT_DIR = join(ROOT, "dictionary");
 const TRANSLATIONS_DIR = join(ROOT, "translations");
 const SOURCE_LANG: Lang = "en";
 const OUT = join(ROOT, "dist");
+const ADR_DIR = join(ROOT, "internal", "adr");
+/** The GitHub repository whose issues and decision records /tasks shows. */
+const REPO = "khanhlegood3/dictionary-of-ai-coding";
+const REPO_URL = `https://github.com/${REPO}`;
 
 const AUTHOR_NAME = "Lê Xuân Khánh";
 const AUTHOR_URL = "https://khanhxl.vercel.app/";
@@ -55,7 +69,14 @@ const LINK_RE = /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g;
 // The marker is the same in every language, so one parser reads them all.
 const USAGE_MARKER = "_Usage:_";
 // Paths the site itself uses. A term may not take one of them.
-const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum", "en", "learn"]);
+const RESERVED_SLUGS = new Set([
+  "a-z",
+  "assets",
+  "curriculum",
+  "en",
+  "learn",
+  "tasks",
+]);
 
 type Section = { number: number; title: string; entries: Entry[] };
 
@@ -445,12 +466,13 @@ function layout(
      * The map and Learn pages fill the viewport, load their own script and
      * have no footer.
      */
-    variant?: "map" | "learn";
+    variant?: "map" | "learn" | "tasks";
   }
 ): string {
   const { lang, t } = site;
   const isMap = opts.variant === "map";
   const isLearn = opts.variant === "learn";
+  const isTasks = opts.variant === "tasks";
   const isApp = isMap || isLearn;
   const assets = isMap
     ? '\n<script src="/assets/graph.js" defer></script>'
@@ -460,7 +482,11 @@ function layout(
 <link rel="stylesheet" href="/assets/learn.css">
 <script src="/assets/learn-store.js" defer></script>
 <script src="/assets/learn.js" defer></script>`
-      : "";
+      : isTasks
+        ? `
+<link rel="stylesheet" href="/assets/tasks.css">
+<script src="/assets/tasks.js" defer></script>`
+        : "";
   const fullTitle =
     opts.title === t.siteName ? t.siteName : `${opts.title} — ${t.siteName}`;
   const current = (key: string) =>
@@ -481,7 +507,7 @@ function layout(
 <link rel="stylesheet" href="/assets/styles.css">
 <script src="/assets/app.js" defer></script>${assets}
 </head>
-<body${isMap ? ' class="page-map"' : isLearn ? ' class="page-learn"' : ""}>
+<body${isMap ? ' class="page-map"' : isLearn ? ' class="page-learn"' : isTasks ? ' class="page-tasks"' : ""}>
 <a class="skip" href="#main">${escapeHtml(t.skip)}</a>
 <header class="site-header">
 <div class="wrap header-inner">
@@ -510,8 +536,9 @@ ${opts.main}
       ? ""
       : `
 <footer class="site-footer">
-<div class="wrap">
+<div class="wrap footer-inner">
 <p>${credit(site)}</p>
+<p><a href="${url(lang, "/tasks")}"${isTasks ? ' aria-current="page"' : ""}>${escapeHtml(t.tasksNav)}</a></p>
 </div>
 </footer>`
   }
@@ -1130,6 +1157,287 @@ ${legend("ahead", t.learnLegendAhead)}
   });
 }
 
+// --------------------------------------------------------------- tasks page
+
+type Adr = {
+  number: string;
+  file: string;
+  title: string;
+  titleVi: string;
+  summary: string;
+  summaryVi: string;
+  status: AdrStatus;
+  /** YYYY-MM-DD */
+  date: string;
+};
+
+const ADR_STATUSES: AdrStatus[] = [
+  "proposed",
+  "accepted",
+  "rejected",
+  "superseded",
+];
+
+/**
+ * Read the decision records in internal/adr/. Each file is named
+ * "<4 digits>-<words>.md" and starts with frontmatter:
+ * status, date, and optionally title_vi, summary, summary_vi.
+ */
+function loadAdrs(): Adr[] {
+  if (!existsSync(ADR_DIR)) return [];
+  const adrs: Adr[] = [];
+  for (const file of readdirSync(ADR_DIR).sort()) {
+    const name = /^(\d{4})-.+\.md$/.exec(file);
+    if (!name) continue;
+    const where = `internal/adr/${file}`;
+    const text = readFileSync(join(ADR_DIR, file), "utf8");
+    const front = /^---\n([\s\S]*?)\n---\n/.exec(text);
+    if (!front) fail(`${where} has no frontmatter.`);
+    const fields: Record<string, string> = {};
+    for (const line of (front[1] ?? "").split("\n")) {
+      const pair = /^([a-z_]+):\s*(.*)$/.exec(line);
+      if (pair) fields[pair[1] as string] = (pair[2] ?? "").trim();
+    }
+    const status = fields.status as AdrStatus | undefined;
+    if (!status || !ADR_STATUSES.includes(status))
+      fail(`${where}: "status" must be one of ${ADR_STATUSES.join(", ")}.`);
+    const date = fields.date ?? "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+      fail(`${where}: "date" must be written as YYYY-MM-DD.`);
+    const heading = /^# (.+)$/m.exec(text.slice(front[0].length));
+    if (!heading) fail(`${where} has no "# Title" line.`);
+    const title = (heading[1] ?? "").trim();
+    const summary = fields.summary ?? "";
+    adrs.push({
+      number: name[1] as string,
+      file,
+      title,
+      titleVi: fields.title_vi || title,
+      summary,
+      summaryVi: fields.summary_vi || summary,
+      status,
+      date,
+    });
+  }
+  return adrs;
+}
+
+/** One issue, cut down to what the tasks page shows. Same shape as tasks.js. */
+type Task = {
+  n: number;
+  title: string;
+  url: string;
+  open: boolean;
+  labels: string[];
+  assignees: { login: string; avatar: string }[];
+  comments: number;
+  updated: string;
+};
+
+type TaskSnapshot = { at: string; tasks: Task[] };
+
+/**
+ * Copy the issue list from GitHub at build time. The page shows this copy when
+ * the visitor's browser cannot reach GitHub. Any failure gives null: the page
+ * then relies on the browser alone, and the build goes on.
+ */
+async function loadTaskSnapshot(): Promise<TaskSnapshot | null> {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "dictionary-of-ai-coding-build",
+  };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const tasks: Task[] = [];
+    for (let page = 1; page <= 3; page++) {
+      const response = await fetch(
+        `https://api.github.com/repos/${REPO}/issues?state=all&per_page=100&page=${page}`,
+        { headers, signal: AbortSignal.timeout(8000) }
+      );
+      if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
+      const list = (await response.json()) as Record<string, unknown>[];
+      for (const issue of list) {
+        // The issues endpoint also returns pull requests.
+        if (issue.pull_request) continue;
+        tasks.push({
+          n: Number(issue.number),
+          title: String(issue.title ?? ""),
+          url: String(issue.html_url ?? ""),
+          open: issue.state === "open",
+          labels: ((issue.labels as { name?: string }[]) ?? [])
+            .map((label) => label.name ?? "")
+            .filter(Boolean),
+          assignees: (
+            (issue.assignees as { login?: string; avatar_url?: string }[]) ?? []
+          ).map((a) => ({
+            login: a.login ?? "",
+            avatar: a.avatar_url ?? "",
+          })),
+          comments: Number(issue.comments ?? 0),
+          updated: String(issue.closed_at ?? issue.updated_at ?? ""),
+        });
+      }
+      if (list.length < 100) break;
+    }
+    return { at: new Date().toISOString(), tasks };
+  } catch (error) {
+    warnings.push(
+      `the issue list of ${REPO} could not be read (${error instanceof Error ? error.message : String(error)}); /tasks is built without a saved copy`
+    );
+    return null;
+  }
+}
+
+const ICON_GITHUB =
+  '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>';
+const ICON_PLUS =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M8 3v10M3 8h10"/></svg>';
+const ICON_SHARE =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M8 10V2m0 0L5 5m3-3 3 3M3 9v4h10V9"/></svg>';
+const ICON_REFRESH =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M13 3v3.5H9.5M3 13V9.5h3.5M12.6 6.5A5 5 0 0 0 3.5 6M3.4 9.5a5 5 0 0 0 9.1.5"/></svg>';
+
+function adrDate(lang: Lang, date: string): string {
+  return new Intl.DateTimeFormat(lang === "vi" ? "vi-VN" : "en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function tasksPage(
+  site: Site,
+  adrs: Adr[],
+  snapshot: TaskSnapshot | null
+): string {
+  const { lang, t } = site;
+  const repoName = REPO.split("/")[1] ?? REPO;
+  // Decisions that still wait for an answer come first, then the newest.
+  const ordered = [...adrs].sort(
+    (a, b) =>
+      Number(b.status === "proposed") - Number(a.status === "proposed") ||
+      b.number.localeCompare(a.number)
+  );
+  const pending = adrs.filter((a) => a.status === "proposed").length;
+  const data = {
+    repo: REPO,
+    lang,
+    snapshot,
+    ui: {
+      open: t.tasksOpen,
+      doing: t.tasksDoing,
+      done: t.tasksDone,
+      unassigned: t.tasksUnassigned,
+      comments: t.tasksComments,
+      empty: t.tasksEmpty,
+      emptyOpen: t.tasksEmptyOpen,
+      emptyAll: t.tasksEmptyAll,
+      loading: t.tasksLoading,
+      updated: t.tasksUpdated,
+      stale: t.tasksStale,
+      error: t.tasksError,
+      onGithub: t.tasksOnGithub,
+      share: t.tasksShare,
+      copied: t.tasksCopied,
+      colAssignee: t.tasksColAssignee,
+      colStatus: t.tasksColStatus,
+      colUpdated: t.tasksColUpdated,
+      labelNames: t.tasksLabelNames,
+    },
+  };
+  const view = (key: string, label: string, pressed: boolean) =>
+    `<button type="button" class="tk-view" data-view="${key}" aria-pressed="${pressed}"><span class="tk-dot tk-dot--${key}" aria-hidden="true"></span><span class="tk-view__name">${escapeHtml(label)}</span><span class="tk-count" data-count="${key}">–</span></button>`;
+  const stat = (key: string, label: string, value: string) =>
+    `<li class="tk-stat tk-stat--${key}"><span class="tk-stat__value"${value ? "" : ` data-count="${key}"`}>${value || "–"}</span><span class="tk-stat__label">${escapeHtml(label)}</span></li>`;
+  const adrCards = ordered
+    .map((a) => {
+      const title = lang === "vi" ? a.titleVi : a.title;
+      const summary = lang === "vi" ? a.summaryVi : a.summary;
+      return `<li class="tk-adr tk-adr--${a.status}">
+<div class="tk-adr__top"><span class="num">ADR ${a.number}</span><span class="tk-pill tk-pill--${a.status}">${escapeHtml(t.tasksAdrStatus[a.status])}</span></div>
+<h3><a href="${REPO_URL}/blob/main/internal/adr/${encodeURIComponent(a.file)}" rel="noopener">${escapeHtml(title)}</a></h3>${summary ? `\n<p>${escapeHtml(summary)}</p>` : ""}
+<p class="tk-adr__date"><time datetime="${a.date}">${escapeHtml(adrDate(lang, a.date))}</time></p>
+</li>`;
+    })
+    .join("\n");
+  return layout(site, {
+    title: t.tasksTitle,
+    description: fill(t.tasksDescription, { site: t.siteName }),
+    path: "/tasks",
+    nav: null,
+    variant: "tasks",
+    main: `<div class="tk" id="tasks">
+<aside class="tk-side" aria-label="${escapeHtml(t.tasksSidebar)}">
+<div class="tk-side__group tk-side__group--project">
+<p class="tk-side__head">${escapeHtml(t.tasksProject)}</p>
+<a class="tk-project" href="${REPO_URL}" rel="noopener">${ICON_GITHUB}<span>${escapeHtml(repoName)}</span></a>
+</div>
+<div class="tk-side__group">
+<p class="tk-side__head" id="tk-views-head">${escapeHtml(t.tasksViews)}</p>
+<div class="tk-views" id="tk-views" role="group" aria-labelledby="tk-views-head">
+${view("open", t.tasksOpen, true)}
+${view("doing", t.tasksDoing, false)}
+${view("done", t.tasksDone, false)}
+${view("all", t.tasksAll, false)}
+</div>
+</div>
+<div class="tk-side__group" id="tk-labels-group" hidden>
+<p class="tk-side__head" id="tk-labels-head">${escapeHtml(t.tasksLabels)}</p>
+<div class="tk-labels" id="tk-labels" role="group" aria-labelledby="tk-labels-head"></div>
+</div>
+<div class="tk-side__group tk-side__group--links">
+<a class="tk-side__link" href="#adr"><span>${escapeHtml(t.tasksDecisions)}</span><span class="tk-count">${adrs.length}</span></a>
+</div>
+</aside>
+<div class="tk-main">
+<header class="tk-head">
+<div class="tk-head__text">
+<p class="tk-date" id="tk-date"></p>
+<h1>${escapeHtml(t.tasksTitle)}</h1>
+<p class="tk-lede">${escapeHtml(t.tasksLede)}</p>
+</div>
+<div class="tk-actions">
+<button type="button" class="tk-btn" id="tk-share">${ICON_SHARE}<span id="tk-share-label">${escapeHtml(t.tasksShare)}</span></button>
+<a class="tk-btn tk-btn--primary" href="${REPO_URL}/issues/new" target="_blank" rel="noopener">${ICON_PLUS}<span>${escapeHtml(t.tasksAdd)}</span></a>
+</div>
+</header>
+<ul class="tk-stats">
+${stat("open", t.tasksOpen, "")}
+${stat("doing", t.tasksDoing, "")}
+${stat("done", t.tasksDone, "")}
+${stat("pending", t.tasksPending, String(pending))}
+</ul>
+<section class="tk-panel" aria-labelledby="tk-list-title">
+<header class="tk-panel__head">
+<h2 id="tk-list-title">${escapeHtml(t.tasksListTitle)}</h2>
+<p class="tk-sync" id="tk-sync" role="status"></p>
+<button type="button" class="tk-btn tk-btn--quiet" id="tk-refresh" hidden>${ICON_REFRESH}<span>${escapeHtml(t.tasksRefresh)}</span></button>
+</header>
+<p class="tk-notice" id="tk-notice" hidden></p>
+<table class="tk-table" id="tk-table" hidden>
+<thead><tr><th scope="col">${escapeHtml(t.tasksColTask)}</th><th scope="col">${escapeHtml(t.tasksColAssignee)}</th><th scope="col">${escapeHtml(t.tasksColStatus)}</th><th scope="col">${escapeHtml(t.tasksColUpdated)}</th></tr></thead>
+<tbody id="tk-rows"></tbody>
+</table>
+<p class="tk-empty" id="tk-empty" hidden></p>
+<noscript><p class="tk-empty">${linkify(t.tasksNoScript, { link: `${REPO_URL}/issues` })}</p></noscript>
+</section>
+<section class="tk-panel" id="adr" aria-labelledby="tk-adr-title">
+<header class="tk-panel__head">
+<h2 id="tk-adr-title">${escapeHtml(t.tasksDecisions)}</h2>
+</header>
+<p class="tk-panel__lede">${escapeHtml(t.tasksDecisionsLede)}</p>
+<ol class="tk-adrs">
+${adrCards}
+</ol>
+</section>
+</div>
+</div>
+<script type="application/json" id="tasks-data">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`,
+  });
+}
+
 function notFoundHelp(site: Site): string {
   return linkify(site.t.notFoundHelp, {
     map: url(site.lang, "/"),
@@ -1173,8 +1481,10 @@ function write(relPath: string, content: string): void {
   writeFileSync(path, content);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const { sections, entries } = load();
+  const adrs = loadAdrs();
+  const snapshot = await loadTaskSnapshot();
   const sites: Site[] = LANGS.map((lang) => ({
     lang,
     t: STRINGS[lang],
@@ -1189,6 +1499,8 @@ function main(): void {
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
   copyFileSync(join(HERE, "learn.css"), join(OUT, "assets", "learn.css"));
   copyFileSync(join(HERE, "learn.js"), join(OUT, "assets", "learn.js"));
+  copyFileSync(join(HERE, "tasks.css"), join(OUT, "assets", "tasks.css"));
+  copyFileSync(join(HERE, "tasks.js"), join(OUT, "assets", "tasks.js"));
   copyFileSync(
     join(HERE, "learn-store.js"),
     join(OUT, "assets", "learn-store.js")
@@ -1220,6 +1532,7 @@ function main(): void {
     write(at("graph.json"), graphData(site));
     write(at("learn/index.html"), learnPage(site));
     write(at("learn.json"), learnData(site));
+    write(at("tasks/index.html"), tasksPage(site, adrs, snapshot));
     write(at("curriculum/index.html"), curriculumPage(site));
     write(at("a-z/index.html"), azPage(site));
     for (const e of entries) {
@@ -1245,6 +1558,9 @@ function main(): void {
   console.log(
     `Built ${entries.length} entries in ${sections.length} sections, in ${LANGS.length} languages (${LANGS.join(", ")}), into dist/`
   );
+  console.log(
+    `Tasks page: ${adrs.length} decision records, ${snapshot ? `${snapshot.tasks.length} issues saved` : "no saved issues"}`
+  );
 }
 
-main();
+await main();
