@@ -12,6 +12,8 @@
 | `site/app.js`            | Theme, language toggle and search, copied as written |
 | `site/layout.ts`         | Places each term in 3D for the map, at build time |
 | `site/graph.js`          | Draws the map in the browser, copied as written   |
+| `site/learn.js`          | Runs the Learn view in the browser, copied as written |
+| `site/learn.css`         | Styles of the Learn view, loaded after `styles.css` |
 
 There is no database and no server code. Every page is built from the markdown
 files, so editing an entry and rebuilding is the whole publishing step.
@@ -21,12 +23,51 @@ files, so editing an entry and rebuilding is the whole publishing step.
 | Path          | Content                                             |
 | ------------- | --------------------------------------------------- |
 | `/`           | The 3D term map                                     |
+| `/learn`      | The course: one term at a time, step by step        |
 | `/curriculum` | Every term in teaching order, grouped by section    |
 | `/a-z`        | Every term in alphabetical order                    |
 | `/<slug>`     | One term, as a plain page that works without script |
 
 The Vietnamese pages are at these paths. The English pages are the same paths
 under `/en`, such as `/en/curriculum` and `/en/harness`.
+
+## Learn view
+
+`/learn` is one page that shows the dictionary as a course. It has three
+columns:
+
+- **Course tree.** The sections as folders, their terms, and the visitor's
+  progress.
+- **Sheet.** The current term, with a diagram of the terms its text links to.
+  A dot under the diagram stands for each step.
+- **Guide.** One step of the entry at a time, with Back and Next.
+
+The build cuts each entry into steps and writes them to `learn.json`, once per
+language:
+
+| Step       | Comes from                                               |
+| ---------- | -------------------------------------------------------- |
+| Definition | The first paragraph of the entry                         |
+| Detail     | Each later paragraph, list or table                      |
+| Note       | A paragraph that opens with a label, such as `_Avoid:_`  |
+| Usage      | The dialogue after `_Usage:_`                            |
+| Recap      | The `description`, and the terms that mention this term  |
+
+A paragraph that ends in a colon stays in the same step as the table or list
+after it. The diagram marks the terms that the current step mentions.
+
+Addresses are `/learn#/<slug>` for a term and `/learn#/<slug>/<n>` for step
+`n` of it. Left and right arrow keys change step. A term counts as done when
+the visitor reaches its recap. Progress and the last place are kept in the
+browser's `localStorage` (`learn:done`, `learn:last`) and are shared by both
+languages. Nothing is sent to a server.
+
+The look of this view is modelled on the course at
+<https://designed-to-scale.vercel.app> by Dilum Sanjaya: warm paper colours,
+ink outlines, hard offset shadows. The code and the diagram are written for
+this site. The typeface is JetBrains Mono (SIL Open Font License 1.1). The
+build copies it from the `@fontsource-variable/jetbrains-mono` package to
+`dist/assets/fonts/`.
 
 ## Languages
 

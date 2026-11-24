@@ -33,12 +33,25 @@ const OUT = join(ROOT, "dist");
 const AUTHOR_NAME = "Lê Xuân Khánh";
 const AUTHOR_URL = "https://khanhxl.vercel.app/";
 
+// The Learn view is set in JetBrains Mono (SIL Open Font License 1.1). The
+// build copies the subsets the two languages need out of the npm package.
+const FONT_DIR = join(
+  ROOT,
+  "node_modules",
+  "@fontsource-variable",
+  "jetbrains-mono",
+  "files"
+);
+const FONT_FILES = ["latin", "latin-ext", "vietnamese"].map(
+  (subset) => `jetbrains-mono-${subset}-wght-normal.woff2`
+);
+
 const SECTION_RE = /^## Section (\d+) — (.+)$/;
 const LINK_RE = /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g;
 // The marker is the same in every language, so one parser reads them all.
 const USAGE_MARKER = "_Usage:_";
 // Paths the site itself uses. A term may not take one of them.
-const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum", "en"]);
+const RESERVED_SLUGS = new Set(["a-z", "assets", "curriculum", "en", "learn"]);
 
 type Section = { number: number; title: string; entries: Entry[] };
 
@@ -49,6 +62,10 @@ type EntryText = {
   description: string;
   bodyHtml: string;
   usageHtml: string;
+  /** The body again, one piece of HTML per paragraph, list or table. */
+  blocks: string[];
+  /** The lines of the usage dialogue, as inline HTML. */
+  usageLines: string[];
   /** False when the language has no translation and English is shown instead. */
   translated: boolean;
 };
@@ -179,21 +196,35 @@ function decorate(html: string): string {
     .replace(/<p><em>([^<]{1,40}:)<\/em>/g, '<p><em class="label">$1</em>');
 }
 
-function renderUsage(markdown: string, heading: string): string {
-  const lines = markdown
+/** The lines of a usage dialogue, as inline HTML. Speakers alternate. */
+function usageLines(markdown: string): string[] {
+  return markdown
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p, i) => {
-      const speaker = i % 2 === 0 ? "a" : "b";
-      const html = marked.parseInline(p, { async: false });
-      return `<p class="line line-${speaker}">${decorate(html)}</p>`;
-    });
+    .map((p) => decorate(marked.parseInline(p, { async: false })));
+}
+
+function renderUsage(lines: string[], heading: string): string {
   if (lines.length === 0) return "";
   return `<section class="usage" aria-labelledby="usage-heading">
 <h2 id="usage-heading">${escapeHtml(heading)}</h2>
-${lines.join("\n")}
+${lines
+  .map(
+    (html, i) => `<p class="line line-${i % 2 === 0 ? "a" : "b"}">${html}</p>`
+  )
+  .join("\n")}
 </section>`;
+}
+
+/** Entry markdown as separate blocks, for the step-by-step Learn view. */
+function renderBlocks(markdown: string): string[] {
+  return marked
+    .lexer(markdown, { gfm: true })
+    .filter((token) => token.type !== "space")
+    .map((token) =>
+      decorate(marked.parser([token], { async: false, gfm: true })).trim()
+    );
 }
 
 /**
@@ -222,11 +253,14 @@ function renderEntryText(
   const usage =
     markerAt === -1 ? "" : linked.slice(markerAt + USAGE_MARKER.length + 2);
 
+  const lines = usageLines(usage);
   return {
     name,
     description,
     bodyHtml: decorate(marked.parse(main, { async: false, gfm: true })),
-    usageHtml: renderUsage(usage, STRINGS[lang].usage),
+    usageHtml: renderUsage(lines, STRINGS[lang].usage),
+    blocks: renderBlocks(main),
+    usageLines: lines,
     translated: true,
     linksTo,
   };
@@ -364,6 +398,14 @@ function credit(site: Site): string {
   });
 }
 
+// The site name with "AI Coding" marked, so a page can highlight those words.
+function brand(site: Site): string {
+  return escapeHtml(site.t.siteName).replace(
+    "AI Coding",
+    '<span class="brand-mark">AI Coding</span>'
+  );
+}
+
 /** Turn "{key}words{/key}" in a string into a link to `href`. */
 function linkify(text: string, links: Record<string, string>): string {
   const values: Record<string, string> = {};
@@ -393,14 +435,27 @@ function layout(
     description: string;
     /** Address of this page without the language prefix, such as "/a-z". */
     path: string;
-    nav: "map" | "curriculum" | "a-z" | null;
+    nav: "map" | "learn" | "curriculum" | "a-z" | null;
     main: string;
-    /** The map page fills the viewport and loads the graph script. */
-    variant?: "map";
+    /**
+     * The map and Learn pages fill the viewport, load their own script and
+     * have no footer.
+     */
+    variant?: "map" | "learn";
   }
 ): string {
   const { lang, t } = site;
   const isMap = opts.variant === "map";
+  const isLearn = opts.variant === "learn";
+  const isApp = isMap || isLearn;
+  const assets = isMap
+    ? '\n<script src="/assets/graph.js" defer></script>'
+    : isLearn
+      ? `
+<link rel="preload" href="/assets/fonts/${FONT_FILES[0]}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/learn.css">
+<script src="/assets/learn.js" defer></script>`
+      : "";
   const fullTitle =
     opts.title === t.siteName ? t.siteName : `${opts.title} — ${t.siteName}`;
   const current = (key: string) =>
@@ -419,17 +474,16 @@ function layout(
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>${THEME_BOOT}</script>
 <link rel="stylesheet" href="/assets/styles.css">
-<script src="/assets/app.js" defer></script>${
-    isMap ? '\n<script src="/assets/graph.js" defer></script>' : ""
-  }
+<script src="/assets/app.js" defer></script>${assets}
 </head>
-<body${isMap ? ' class="page-map"' : ""}>
+<body${isMap ? ' class="page-map"' : isLearn ? ' class="page-learn"' : ""}>
 <a class="skip" href="#main">${escapeHtml(t.skip)}</a>
 <header class="site-header">
 <div class="wrap header-inner">
-<a class="brand" href="${url(lang, "/")}">${escapeHtml(t.siteName)}</a>
+<a class="brand" href="${url(lang, "/")}">${brand(site)}</a>
 <nav class="site-nav" aria-label="${escapeHtml(t.navLabel)}">
 <a href="${url(lang, "/")}"${current("map")}>${escapeHtml(t.navMap)}</a>
+<a href="${url(lang, "/learn")}"${current("learn")}>${escapeHtml(t.navLearn)}</a>
 <a href="${url(lang, "/curriculum")}"${current("curriculum")}>${escapeHtml(t.navCurriculum)}</a>
 <a href="${url(lang, "/a-z")}"${current("a-z")}>${escapeHtml(t.navAz)}</a>
 </nav>
@@ -444,10 +498,10 @@ ${languageToggle(site, opts.path)}
 </button>
 </div>
 </header>
-<main id="main"${isMap ? "" : ' class="wrap"'}>
+<main id="main"${isApp ? "" : ' class="wrap"'}>
 ${opts.main}
 </main>${
-    isMap
+    isApp
       ? ""
       : `
 <footer class="site-footer">
@@ -742,9 +796,307 @@ ${pager}
   });
 }
 
+// ------------------------------------------------------------- Learn view
+
+type LearnStep = {
+  /** def: the definition. more: further text. note: a labelled note. */
+  k: "def" | "more" | "note" | "usage";
+  /** The label of a note, such as "Avoid". */
+  t?: string;
+  /** 1 when the note warns against something. */
+  w?: 1;
+  h: string;
+  /** Indexes of the entries this step links to. */
+  l: number[];
+};
+
+// Indexes of the entries that a piece of rendered entry HTML links to.
+function linkedEntries(
+  site: Site,
+  html: string,
+  bySlug: Map<string, number>,
+  self: number
+): number[] {
+  const prefix = `${BASE[site.lang]}/`;
+  const found = new Set<number>();
+  for (const match of html.matchAll(/<a href="([^"#?]+)"/g)) {
+    const href = match[1] ?? "";
+    if (!href.startsWith(prefix)) continue;
+    const i = bySlug.get(href.slice(prefix.length));
+    if (i !== undefined && i !== self) found.add(i);
+  }
+  return [...found];
+}
+
+const NOTE_RE = /^<p><em class="label">([^<]+):<\/em>\s*/;
+
+/** One entry cut into the steps the Learn view walks through. */
+function learnSteps(
+  site: Site,
+  e: Entry,
+  bySlug: Map<string, number>,
+  self: number
+): LearnStep[] {
+  const text = e.text[site.lang];
+  // Entries shown in English keep the English label.
+  const avoid = (text.translated ? site.t : STRINGS[SOURCE_LANG]).avoidMarker;
+  // A paragraph that ends in a colon introduces the table or list after it.
+  // The two stay together as one step.
+  const blocks: string[] = [];
+  let lead = "";
+  for (const block of text.blocks) {
+    const html = lead ? `${lead}\n${block}` : block;
+    if (/:\s*<\/p>$/.test(block)) {
+      lead = html;
+      continue;
+    }
+    lead = "";
+    blocks.push(html);
+  }
+  if (lead) blocks.push(lead);
+
+  const steps: LearnStep[] = blocks.map((html, i) => {
+    const l = linkedEntries(site, html, bySlug, self);
+    const note = html.match(NOTE_RE);
+    if (note && note[1]) {
+      const step: LearnStep = {
+        k: "note",
+        t: note[1],
+        h: html.replace(NOTE_RE, "<p>"),
+        l,
+      };
+      if (`${note[1]}:` === avoid) step.w = 1;
+      return step;
+    }
+    return { k: i === 0 ? "def" : "more", h: html, l };
+  });
+  if (text.usageLines.length) {
+    const html = text.usageLines
+      .map(
+        (line, i) =>
+          `<p class="lx-say lx-say--${i % 2 === 0 ? "a" : "b"}">${line}</p>`
+      )
+      .join("\n");
+    steps.push({
+      k: "usage",
+      h: `<div class="lx-chat">\n${html}\n</div>`,
+      l: linkedEntries(site, html, bySlug, self),
+    });
+  }
+  return steps;
+}
+
+function learnData(site: Site): string {
+  const { t, sections, entries } = site;
+  const bySlug = new Map(entries.map((e, i) => [e.slug, i]));
+  return JSON.stringify({
+    ui: {
+      siteName: t.siteName,
+      title: t.learnTitle,
+      termInSection: t.learnTermInSection,
+      termOf: t.termOf,
+      stepOf: t.learnStepOf,
+      steps: t.learnSteps,
+      links: t.learnLinks,
+      kinds: {
+        def: t.learnKindDef,
+        more: t.learnKindMore,
+        note: t.learnKindNote,
+        usage: t.learnKindUsage,
+        recap: t.learnKindRecap,
+      },
+      keyIdea: t.learnKeyIdea,
+      next: t.learnNext,
+      finished: t.learnFinished,
+      diagram: t.learnDiagram,
+      noLinks: t.learnNoLinks,
+      mentionedIn: t.mentionedIn,
+      prereqNone: t.learnPrereqNone,
+      done: t.learnDone,
+      termDone: t.learnTermDone,
+      resetConfirm: t.learnResetConfirm,
+      notTranslated: t.notTranslated,
+    },
+    sections: sections.map((s) => ({
+      n: s.number,
+      t: sectionTitle(site, s),
+      c: s.entries.length,
+    })),
+    terms: entries.map((e, i) => {
+      const text = e.text[site.lang];
+      return {
+        s: e.slug,
+        t: e.term,
+        a: text.name,
+        d: text.description,
+        c: e.section.number,
+        // 1 when this language has no translation and English is shown.
+        e: text.translated ? undefined : 1,
+        steps: learnSteps(site, e, bySlug, i),
+      };
+    }),
+  });
+}
+
+const ICON_CHEVRON =
+  '<svg class="lx-chev" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_FOLDER =
+  '<svg class="lx-folder" viewBox="0 0 20 16" width="19" height="15" aria-hidden="true"><path d="M1.5 3.2c0-.9.7-1.7 1.7-1.7h4l1.9 2h7.7c1 0 1.7.8 1.7 1.7v7.6c0 .9-.7 1.7-1.7 1.7H3.2c-1 0-1.7-.8-1.7-1.7Z" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const ICON_MENU =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_ARROW =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const ICON_CHECK =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_BOTH =
+  '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 5.5h11M10.5 3 13 5.5 10.5 8M14 10.5H3M5.5 8 3 10.5 5.5 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function twoDigits(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+// The page is a shell. site/learn.js fills it from learn.json and moves
+// between terms and steps without loading another page.
+function learnPage(site: Site): string {
+  const { lang, t, sections, entries } = site;
+  const text = (value: string) => escapeHtml(value);
+  const first = entries[0];
+
+  const tree = sections
+    .map(
+      (
+        s,
+        i
+      ) => `<li class="lx-mod lx-c${s.number}${i === 0 ? " is-open" : ""}" data-section="${s.number}">
+<h2 class="lx-mod__h"><button type="button" class="lx-mod__head" aria-expanded="${i === 0}" aria-controls="lx-mod-${s.number}">${ICON_CHEVRON}${ICON_FOLDER}<span class="lx-mod__name">${twoDigits(s.number)}. ${text(sectionTitle(site, s))}</span><span class="lx-mod__count">0/${s.entries.length}</span></button></h2>
+<div class="lx-mod__body" id="lx-mod-${s.number}">
+<ol class="lx-mod__list">
+${s.entries
+  .map(
+    (e) =>
+      `<li><a class="lx-lesson" href="#/${e.slug}" data-slug="${e.slug}"><span class="lx-lesson__name">${text(e.term)}</span><span class="lx-lesson__tick" aria-hidden="true"></span></a></li>`
+  )
+  .join("\n")}
+</ol>
+</div>
+</li>`
+    )
+    .join("\n");
+
+  const checklist = sections
+    .map(
+      (s) =>
+        `<li data-section="${s.number}"><span class="lx-check" aria-hidden="true"></span><span>${text(sectionTitle(site, s))}</span><span class="lx-progress__n">0/${s.entries.length}</span></li>`
+    )
+    .join("\n");
+
+  const hud = (id: string, label: string, tone: string) =>
+    `<div class="lx-hud__chip lx-hud__chip--${tone}"><dt>${text(label)}</dt><dd id="${id}">–</dd></div>`;
+  const legend = (tone: string, label: string) =>
+    `<li><i class="lx-lg lx-lg--${tone}" aria-hidden="true"></i>${text(label)}</li>`;
+
+  return layout(site, {
+    title: t.learnTitle,
+    description: fill(t.learnDescription, {
+      count: entries.length,
+      site: t.siteName,
+    }),
+    path: "/learn",
+    nav: "learn",
+    variant: "learn",
+    main: `<div class="lx" id="learn" data-error="${text(t.learnError)}" aria-busy="true">
+<aside class="lx-side" id="lx-side" aria-label="${text(t.learnCourse)}">
+<div class="lx-side__scroll">
+<div class="lx-tree-root"><span>${text(t.learnCourse)}</span><span class="lx-tree-root__count">${text(fill(t.termCount, { count: entries.length }))}</span><button type="button" class="lx-side__close" id="lx-side-close" aria-label="${text(t.learnCloseCourse)}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></div>
+<ul class="lx-tree">
+${tree}
+</ul>
+</div>
+<div class="lx-progress is-open" id="lx-progress">
+<button type="button" class="lx-progress__head" id="lx-progress-toggle" aria-expanded="true" aria-controls="lx-progress-body"><span class="lx-progress__title">${text(t.learnProgress)}</span><span class="lx-progress__count" id="lx-progress-count">0 / ${entries.length}</span>${ICON_CHEVRON}</button>
+<div class="lx-progress__bar" aria-hidden="true"><span id="lx-progress-fill"></span></div>
+<div class="lx-progress__body" id="lx-progress-body">
+<div>
+<ul class="lx-progress__list" id="lx-progress-list">
+${checklist}
+</ul>
+<button type="button" class="lx-progress__reset" id="lx-reset">${text(t.learnReset)}</button>
+</div>
+</div>
+</div>
+</aside>
+<div class="lx-backdrop" id="lx-backdrop" hidden></div>
+<section class="lx-main">
+<article class="lx-sheet" aria-labelledby="lx-title">
+<header class="lx-head">
+<div class="lx-head__top">
+<button type="button" class="lx-tool lx-menu" id="lx-menu" aria-controls="lx-side" aria-expanded="false" aria-label="${text(t.learnOpenCourse)}">${ICON_MENU}<span>${text(t.learnCourse)}</span></button>
+<p class="lx-crumb" id="lx-crumb">${first ? `${twoDigits(first.section.number)}. ${text(sectionTitle(site, first.section))}` : ""}</p>
+</div>
+<h1 class="lx-title" id="lx-title">${first ? text(first.term) : text(t.learnTitle)}</h1>
+<ul class="lx-tags" id="lx-tags"></ul>
+<p class="lx-sub" id="lx-sub">${first ? text(first.text[lang].description) : ""}</p>
+</header>
+<div class="lx-stage">
+<div class="lx-stage__top">
+<dl class="lx-hud">
+${hud("lx-hud-out", t.learnHudOut, "out")}
+${hud("lx-hud-in", t.learnHudIn, "in")}
+${hud("lx-hud-both", t.learnHudBoth, "both")}
+</dl>
+<div class="lx-stage__tools">
+<a class="lx-tool" id="lx-tool-map" href="${url(lang, "/")}">${text(t.learnToolMap)}</a>
+<a class="lx-tool" id="lx-tool-page" href="${url(lang, "/curriculum")}">${text(t.learnToolPage)}</a>
+</div>
+</div>
+<div class="lx-canvas" id="lx-canvas" role="group">
+<svg class="lx-links" id="lx-links" aria-hidden="true" focusable="false"></svg>
+<div class="lx-nodes" id="lx-nodes"></div>
+<p class="lx-canvas__status" id="lx-status" role="status">${text(t.learnLoading)}</p>
+</div>
+<ul class="lx-legend">
+${legend("hit", t.learnLegendHit)}
+${legend("seen", t.learnLegendSeen)}
+${legend("ahead", t.learnLegendAhead)}
+<li><span class="lx-both" id="lx-both-icon">${ICON_BOTH}</span>${text(t.learnLegendBoth)}</li>
+</ul>
+</div>
+<nav class="lx-timeline" aria-label="${text(t.learnStepsLabel)}">
+<div class="lx-timeline__head"><span class="lx-eyebrow">${text(t.learnStepsLabel)}</span><span class="lx-timeline__count" id="lx-step-count"></span></div>
+<div class="lx-timeline__track">
+<div class="lx-timeline__rail" aria-hidden="true"><span id="lx-rail-fill"></span></div>
+<ol class="lx-timeline__steps" id="lx-steps"></ol>
+</div>
+</nav>
+<noscript><p class="lx-noscript">${linkify(t.learnNoScript, { link: url(lang, "/curriculum") })}</p></noscript>
+</article>
+</section>
+<aside class="lx-rail">
+<section class="lx-card lx-guide" aria-labelledby="lx-guide-step">
+<div class="lx-guide__meta"><h2 class="lx-eyebrow" id="lx-guide-step">${text(fill(t.learnStepOf, { i: 1, total: 1 }))}</h2><span class="lx-chapter" id="lx-chapter"></span></div>
+<div class="lx-guide__content" id="lx-guide" aria-live="polite"></div>
+<div class="lx-guide__nav">
+<button type="button" class="lx-btn-ghost" id="lx-back" disabled><span class="lx-flip">${ICON_ARROW}</span>${text(t.learnBack)}</button>
+<button type="button" class="lx-btn-pop lx-btn-next" id="lx-next" disabled><span class="lx-btn-next__label" id="lx-next-label">${text(fill(t.learnNext, { label: "…" }))}</span>${ICON_ARROW}</button>
+</div>
+<p class="lx-guide__hint"><kbd class="lx-flip" aria-label="←">${ICON_ARROW}</kbd><kbd aria-label="→">${ICON_ARROW}</kbd><span>${text(t.learnHint)}</span></p>
+</section>
+<section class="lx-card lx-goals" aria-labelledby="lx-prereq-title">
+<h2 class="lx-eyebrow" id="lx-prereq-title">${text(t.learnPrereq)}</h2>
+<ul class="lx-chips" id="lx-prereq"></ul>
+</section>
+<p class="lx-credit">${credit(site)}</p>
+</aside>
+<div class="lx-toast" id="lx-toast" role="status"><span class="lx-toast__icon" id="lx-check-icon">${ICON_CHECK}</span><span class="lx-toast__text" id="lx-toast-text"></span></div>
+</div>`,
+  });
+}
+
 function notFoundHelp(site: Site): string {
   return linkify(site.t.notFoundHelp, {
     map: url(site.lang, "/"),
+    learn: url(site.lang, "/learn"),
     curriculum: url(site.lang, "/curriculum"),
     az: url(site.lang, "/a-z"),
   });
@@ -798,6 +1150,15 @@ function main(): void {
   copyFileSync(join(HERE, "styles.css"), join(OUT, "assets", "styles.css"));
   copyFileSync(join(HERE, "app.js"), join(OUT, "assets", "app.js"));
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
+  copyFileSync(join(HERE, "learn.css"), join(OUT, "assets", "learn.css"));
+  copyFileSync(join(HERE, "learn.js"), join(OUT, "assets", "learn.js"));
+  mkdirSync(join(OUT, "assets", "fonts"), { recursive: true });
+  for (const file of FONT_FILES) {
+    const from = join(FONT_DIR, file);
+    if (!existsSync(from))
+      fail(`${from} is missing. Run "npm ci" to install the font package.`);
+    copyFileSync(from, join(OUT, "assets", "fonts", file));
+  }
   write("favicon.svg", FAVICON);
 
   for (const site of sites) {
@@ -807,6 +1168,8 @@ function main(): void {
 
     write(at("index.html"), mapPage(site));
     write(at("graph.json"), graphData(site));
+    write(at("learn/index.html"), learnPage(site));
+    write(at("learn.json"), learnData(site));
     write(at("curriculum/index.html"), curriculumPage(site));
     write(at("a-z/index.html"), azPage(site));
     for (const e of entries) {
