@@ -29,6 +29,7 @@
     relatedSection: document.getElementById("term-panel-related-section"),
     related: document.getElementById("term-panel-related"),
     page: document.getElementById("term-panel-page"),
+    learn: document.getElementById("term-panel-learn"),
     prev: document.getElementById("term-panel-prev"),
     next: document.getElementById("term-panel-next"),
     close: document.getElementById("term-panel-close"),
@@ -687,6 +688,7 @@
     // Built from this repository's markdown by site/build.ts.
     panel.content.innerHTML = n.html;
     panel.page.href = base + "/" + n.slug;
+    if (panel.learn) panel.learn.href = base + "/learn#/" + n.slug;
 
     panel.related.textContent = "";
     n.near.forEach(function (other) {
@@ -759,7 +761,7 @@
   // instead of leaving the page.
   panel.root.addEventListener("click", function (event) {
     var link = event.target.closest("a[href]");
-    if (!link || link === panel.page) return;
+    if (!link || link === panel.page || link === panel.learn) return;
     if (
       event.button !== 0 ||
       event.metaKey ||
