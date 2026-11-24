@@ -808,6 +808,142 @@
   color: var(--ink);
 }
 
+/* Account: sign in with Google, then who is signed in and the sync state. */
+
+.lx-account {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+/* The parts below set their own display, which would beat [hidden]. */
+.page-learn .lx-account[hidden],
+.page-learn .lx-account [hidden] {
+  display: none;
+}
+
+.page-learn .lx-signin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--tool);
+  border: 1.3px solid var(--ink);
+  border-radius: 9px;
+  box-shadow: 1.5px 2.5px 0 var(--drop);
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+
+.page-learn .lx-signin:hover:not(:disabled) {
+  transform: translate(-0.5px, -1px);
+  box-shadow: 2px 3.5px 0 var(--drop);
+}
+
+.page-learn .lx-signin:active:not(:disabled) {
+  transform: translate(1px, 2px);
+  box-shadow: 0.5px 0.5px 0 var(--drop);
+}
+
+.page-learn .lx-signin:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.lx-signin svg {
+  flex: none;
+}
+
+.lx-account__hint {
+  margin: 7px 0 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* The hint belongs to the button. */
+.lx-signin[hidden] + .lx-account__hint {
+  display: none;
+}
+
+.lx-account__in {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lx-account__email {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lx-account__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.page-learn .lx-sync,
+.page-learn .lx-signout {
+  min-height: 24px;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: left;
+}
+
+.page-learn .lx-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.lx-sync::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--line-strong);
+  border: 1.3px solid var(--ink-2);
+  border-radius: 50%;
+}
+
+.lx-sync[data-state="synced"]::before {
+  background: var(--green-3);
+}
+
+.lx-sync[data-state="error"] {
+  color: var(--rust);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.lx-sync[data-state="error"]::before {
+  background: var(--rust);
+}
+
+.page-learn .lx-signout {
+  flex: none;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.lx-signout:hover,
+.lx-sync:hover {
+  color: var(--ink);
+}
+
 /* ------------------------------------------------------------------ sheet */
 
 .lx-main {
@@ -1810,6 +1946,15 @@ a.lx-node:hover {
 .lx-toast__text {
   font-size: 13px;
   font-weight: 800;
+}
+
+/* A message about something that did not work has no tick. */
+.lx-toast.is-warn {
+  padding-left: 18px;
+}
+
+.lx-toast.is-warn .lx-toast__icon {
+  display: none;
 }
 
 .lx-backdrop {

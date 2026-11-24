@@ -82,6 +82,17 @@ export type Strings = {
   learnProgress: string;
   learnReset: string;
   learnResetConfirm: string;
+  learnResetConfirmSynced: string;
+  learnSignIn: string;
+  learnSignInHint: string;
+  learnSigningIn: string;
+  learnSignInUnavailable: string;
+  learnSignInFailed: string;
+  learnSignOut: string;
+  learnSignOutConfirm: string;
+  learnSyncing: string;
+  learnSynced: string;
+  learnSyncError: string;
   learnLoading: string;
   learnError: string;
   /** "{link}" wraps the words that link to the curriculum. */
@@ -204,6 +215,19 @@ export const STRINGS: Record<Lang, Strings> = {
     learnProgress: "Tiến độ",
     learnReset: "Đặt lại tiến độ",
     learnResetConfirm: "Xoá toàn bộ tiến độ học trên trình duyệt này?",
+    learnResetConfirmSynced:
+      "Xoá toàn bộ tiến độ học của tài khoản này, trên mọi thiết bị?",
+    learnSignIn: "Đăng nhập bằng Google",
+    learnSignInHint: "Để đồng bộ tiến độ giữa các thiết bị.",
+    learnSigningIn: "Đang đăng nhập…",
+    learnSignInUnavailable: "Đăng nhập bằng Google hiện chưa dùng được.",
+    learnSignInFailed: "Đăng nhập không thành công.",
+    learnSignOut: "Đăng xuất",
+    learnSignOutConfirm:
+      "Đăng xuất? Tiến độ đã đồng bộ vẫn nằm trong tài khoản. Trình duyệt này sẽ bắt đầu lại với tiến độ trống.",
+    learnSyncing: "Đang đồng bộ…",
+    learnSynced: "Đã đồng bộ",
+    learnSyncError: "Lỗi đồng bộ. Thử lại",
     learnLoading: "Đang tải khoá học…",
     learnError: "Không tải được khoá học. Hãy tải lại trang.",
     learnNoScript:
@@ -327,6 +351,19 @@ export const STRINGS: Record<Lang, Strings> = {
     learnProgress: "Progress",
     learnReset: "Reset progress",
     learnResetConfirm: "Clear all your progress in this browser?",
+    learnResetConfirmSynced:
+      "Clear all the progress of this account, on every device?",
+    learnSignIn: "Sign in with Google",
+    learnSignInHint: "To sync your progress across devices.",
+    learnSigningIn: "Signing in…",
+    learnSignInUnavailable: "Google sign-in is not available right now.",
+    learnSignInFailed: "Sign-in did not complete.",
+    learnSignOut: "Sign out",
+    learnSignOutConfirm:
+      "Sign out? Synced progress stays in your account. This browser starts again with empty progress.",
+    learnSyncing: "Syncing…",
+    learnSynced: "Synced",
+    learnSyncError: "Sync failed. Retry",
     learnLoading: "Loading the course…",
     learnError: "The course could not load. Reload the page.",
     learnNoScript:

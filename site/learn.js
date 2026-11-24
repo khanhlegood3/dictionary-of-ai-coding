@@ -2,7 +2,8 @@
 // a guide that walks through the term one step at a time. No dependencies.
 //
 // Addresses are "#/<term-slug>" and "#/<term-slug>/<step number>". Progress
-// is kept in localStorage and is shared by both languages.
+// is kept by site/learn-store.js: in IndexedDB, and in the visitor's account
+// once they sign in. It is shared by both languages.
 
 (function () {
   var shell = document.getElementById("learn");
@@ -12,8 +13,7 @@
   // URL prefix of this page's language. Set by site/build.ts.
   var base = root.dataset.base || "";
   var SVG = "http://www.w3.org/2000/svg";
-  var DONE_KEY = "learn:done";
-  var LAST_KEY = "learn:last";
+  var store = window.LearnStore;
 
   function $(id) {
     return document.getElementById(id);
@@ -30,6 +30,13 @@
     progressFill: $("lx-progress-fill"),
     progressList: $("lx-progress-list"),
     reset: $("lx-reset"),
+    account: $("lx-account"),
+    signIn: $("lx-signin"),
+    signInLabel: $("lx-signin-label"),
+    accountIn: $("lx-account-in"),
+    accountEmail: $("lx-account-email"),
+    syncState: $("lx-sync-state"),
+    signOut: $("lx-signout"),
     main: shell.querySelector(".lx-main"),
     head: shell.querySelector(".lx-head"),
     crumb: $("lx-crumb"),
@@ -126,42 +133,45 @@
 
   // -------------------------------------------------------------- storage
 
-  function readDone() {
-    done = {};
-    try {
-      var list = JSON.parse(localStorage.getItem(DONE_KEY) || "[]");
-      if (Array.isArray(list)) {
-        list.forEach(function (slug) {
-          done[slug] = true;
-        });
-      }
-    } catch (e) {
-      // No stored progress, or storage is unavailable.
-    }
-  }
-
-  function writeDone() {
-    try {
-      localStorage.setItem(DONE_KEY, JSON.stringify(Object.keys(done)));
-    } catch (e) {
-      // Progress then lasts for this visit only.
-    }
-  }
-
   function remember(i, s) {
-    try {
-      localStorage.setItem(LAST_KEY, terms[i].s + "/" + (s + 1));
-    } catch (e) {
-      // Nothing to do: the address still holds the place.
-    }
+    store.setLast(terms[i].s + "/" + (s + 1));
   }
 
   function lastPlace() {
-    try {
-      return localStorage.getItem(LAST_KEY) || "";
-    } catch (e) {
-      return "";
-    }
+    return store.last();
+  }
+
+  // Progress changed somewhere else: another tab, or the account.
+  function repaintDone() {
+    done = store.done();
+    paintProgress();
+    if (current === -1) return;
+    paintPrereq();
+    paintTags();
+  }
+
+  // -------------------------------------------------------------- account
+
+  function paintAccount(state) {
+    if (!el.account) return;
+    el.account.hidden = !state.available;
+    if (!state.available) return;
+    var signedIn = state.status === "in";
+    var busy = state.status === "busy";
+    el.signIn.hidden = signedIn;
+    el.signIn.disabled = busy;
+    el.signInLabel.textContent = busy ? ui.signingIn : ui.signIn;
+    el.accountIn.hidden = !signedIn;
+    if (!signedIn) return;
+    el.accountEmail.textContent = state.email;
+    el.accountEmail.title = state.email;
+    el.syncState.dataset.state = state.sync;
+    el.syncState.textContent =
+      state.sync === "error"
+        ? ui.syncError
+        : state.sync === "synced"
+          ? ui.synced
+          : ui.syncing;
   }
 
   // ------------------------------------------------------------- progress
@@ -203,20 +213,26 @@
     });
   }
 
-  function toast(text) {
+  // kind "warn" is a message about something that did not work: no tick,
+  // and it stays longer.
+  function toast(text, kind) {
+    var warn = kind === "warn";
     el.toastText.textContent = text;
+    el.toast.classList.toggle("is-warn", warn);
     el.toast.classList.add("is-on");
     window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(function () {
-      el.toast.classList.remove("is-on");
-    }, 2400);
+    toastTimer = window.setTimeout(
+      function () {
+        el.toast.classList.remove("is-on");
+      },
+      warn ? 5000 : 2400
+    );
   }
 
   function markDone(i) {
     var term = terms[i];
-    if (done[term.s]) return;
-    done[term.s] = true;
-    writeDone();
+    if (!store.markDone(term.s)) return;
+    done = store.done();
     paintProgress();
     paintPrereq();
     paintTags();
@@ -795,13 +811,27 @@
     });
 
     el.reset.addEventListener("click", function () {
-      if (!window.confirm(ui.resetConfirm)) return;
-      done = {};
-      writeDone();
-      paintProgress();
-      paintPrereq();
-      paintTags();
+      var signedIn = store.auth().status === "in";
+      var question = signedIn ? ui.resetConfirmSynced : ui.resetConfirm;
+      if (!window.confirm(question)) return;
+      store.reset();
+      repaintDone();
     });
+
+    if (el.account) {
+      el.signIn.addEventListener("click", function () {
+        store.signIn().then(function (outcome) {
+          if (outcome === "unavailable") toast(ui.signInUnavailable, "warn");
+        });
+      });
+      el.signOut.addEventListener("click", function () {
+        if (!window.confirm(ui.signOutConfirm)) return;
+        store.signOut();
+      });
+      el.syncState.addEventListener("click", function () {
+        store.sync();
+      });
+    }
 
     el.menu.addEventListener("click", function () {
       setDrawer(!shell.classList.contains("is-side-open"));
@@ -926,24 +956,38 @@
     });
 
     // On a short window the checklist would leave little room for the tree.
-    if (window.innerHeight < 800) {
+    if (window.innerHeight < 860) {
       el.progress.classList.remove("is-open");
       el.progressToggle.setAttribute("aria-expanded", "false");
     }
 
-    readDone();
+    done = store.done();
     paintProgress();
     bind();
     route();
+    store.onChange(repaintDone);
+    store.onAuth(paintAccount);
+    paintAccount(store.auth());
+    if (store.takeNotice() === "failed") toast(ui.signInFailed, "warn");
     shell.setAttribute("aria-busy", "false");
   }
 
-  fetch(base + "/learn.json")
-    .then(function (response) {
+  store.configure({
+    url: shell.dataset.syncUrl,
+    key: shell.dataset.syncKey,
+    lib: shell.dataset.syncLib,
+  });
+
+  Promise.all([
+    fetch(base + "/learn.json").then(function (response) {
       if (!response.ok) throw new Error("learn.json: " + response.status);
       return response.json();
+    }),
+    store.open(),
+  ])
+    .then(function (loaded) {
+      start(loaded[0]);
     })
-    .then(start)
     .catch(function (error) {
       el.status.textContent = shell.dataset.error || "";
       shell.setAttribute("aria-busy", "false");

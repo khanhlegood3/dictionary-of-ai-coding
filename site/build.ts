@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { marked } from "marked";
 import { layoutGraph } from "./layout";
 import { BASE, LANGS, STRINGS, fill, type Lang, type Strings } from "./strings";
+import { SYNC } from "./sync";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE);
@@ -42,6 +43,9 @@ const FONT_DIR = join(
   "jetbrains-mono",
   "files"
 );
+// The Supabase client, served from this site and loaded only for sign-in.
+const SUPABASE_DIR = join(ROOT, "node_modules", "@supabase", "supabase-js");
+const SUPABASE_FILE = "supabase-js.js";
 const FONT_FILES = ["latin", "latin-ext", "vietnamese"].map(
   (subset) => `jetbrains-mono-${subset}-wght-normal.woff2`
 );
@@ -454,6 +458,7 @@ function layout(
       ? `
 <link rel="preload" href="/assets/fonts/${FONT_FILES[0]}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/learn.css">
+<script src="/assets/learn-store.js" defer></script>
 <script src="/assets/learn.js" defer></script>`
       : "";
   const fullTitle =
@@ -917,6 +922,15 @@ function learnData(site: Site): string {
       done: t.learnDone,
       termDone: t.learnTermDone,
       resetConfirm: t.learnResetConfirm,
+      resetConfirmSynced: t.learnResetConfirmSynced,
+      signIn: t.learnSignIn,
+      signingIn: t.learnSigningIn,
+      signInUnavailable: t.learnSignInUnavailable,
+      signInFailed: t.learnSignInFailed,
+      signOutConfirm: t.learnSignOutConfirm,
+      syncing: t.learnSyncing,
+      synced: t.learnSynced,
+      syncError: t.learnSyncError,
       notTranslated: t.notTranslated,
     },
     sections: sections.map((s) => ({
@@ -940,6 +954,9 @@ function learnData(site: Site): string {
   });
 }
 
+// Google's "G", as its sign-in branding guidelines ask for it.
+const ICON_GOOGLE =
+  '<svg viewBox="0 0 48 48" width="15" height="15" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
 const ICON_CHEVRON =
   '<svg class="lx-chev" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_FOLDER =
@@ -998,6 +1015,23 @@ ${s.entries
   const legend = (tone: string, label: string) =>
     `<li><i class="lx-lg lx-lg--${tone}" aria-hidden="true"></i>${text(label)}</li>`;
 
+  // Sign-in and sync, when a Supabase project is set in site/sync.ts. The
+  // block stays hidden until site/learn.js knows the visitor's state.
+  const syncOn = Boolean(SYNC.url && SYNC.publishableKey);
+  const syncAttrs = syncOn
+    ? ` data-sync-url="${text(SYNC.url)}" data-sync-key="${text(SYNC.publishableKey)}" data-sync-lib="/assets/vendor/${SUPABASE_FILE}"`
+    : "";
+  const account = syncOn
+    ? `<div class="lx-account" id="lx-account" hidden>
+<button type="button" class="lx-signin" id="lx-signin">${ICON_GOOGLE}<span id="lx-signin-label">${text(t.learnSignIn)}</span></button>
+<p class="lx-account__hint">${text(t.learnSignInHint)}</p>
+<div class="lx-account__in" id="lx-account-in" hidden>
+<span class="lx-account__email" id="lx-account-email"></span>
+<span class="lx-account__row"><button type="button" class="lx-sync" id="lx-sync-state" aria-live="polite"></button><button type="button" class="lx-signout" id="lx-signout">${text(t.learnSignOut)}</button></span>
+</div>
+</div>`
+    : "";
+
   return layout(site, {
     title: t.learnTitle,
     description: fill(t.learnDescription, {
@@ -1007,7 +1041,7 @@ ${s.entries
     path: "/learn",
     nav: "learn",
     variant: "learn",
-    main: `<div class="lx" id="learn" data-error="${text(t.learnError)}" aria-busy="true">
+    main: `<div class="lx" id="learn" data-error="${text(t.learnError)}"${syncAttrs} aria-busy="true">
 <aside class="lx-side" id="lx-side" aria-label="${text(t.learnCourse)}">
 <div class="lx-side__scroll">
 <div class="lx-tree-root"><span>${text(t.learnCourse)}</span><span class="lx-tree-root__count">${text(fill(t.termCount, { count: entries.length }))}</span><button type="button" class="lx-side__close" id="lx-side-close" aria-label="${text(t.learnCloseCourse)}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></div>
@@ -1026,6 +1060,7 @@ ${checklist}
 <button type="button" class="lx-progress__reset" id="lx-reset">${text(t.learnReset)}</button>
 </div>
 </div>
+${account}
 </div>
 </aside>
 <div class="lx-backdrop" id="lx-backdrop" hidden></div>
@@ -1154,6 +1189,19 @@ function main(): void {
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
   copyFileSync(join(HERE, "learn.css"), join(OUT, "assets", "learn.css"));
   copyFileSync(join(HERE, "learn.js"), join(OUT, "assets", "learn.js"));
+  copyFileSync(
+    join(HERE, "learn-store.js"),
+    join(OUT, "assets", "learn-store.js")
+  );
+  mkdirSync(join(OUT, "assets", "vendor"), { recursive: true });
+  const supabaseBundle = join(SUPABASE_DIR, "dist", "umd", "supabase.js");
+  if (!existsSync(supabaseBundle))
+    fail(`${supabaseBundle} is missing. Run "npm ci" to install it.`);
+  copyFileSync(supabaseBundle, join(OUT, "assets", "vendor", SUPABASE_FILE));
+  copyFileSync(
+    join(SUPABASE_DIR, "LICENSE"),
+    join(OUT, "assets", "vendor", "supabase-js.LICENSE.txt")
+  );
   mkdirSync(join(OUT, "assets", "fonts"), { recursive: true });
   for (const file of FONT_FILES) {
     const from = join(FONT_DIR, file);
