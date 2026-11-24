@@ -25,6 +25,7 @@ export type Strings = {
   navMap: string;
   navCurriculum: string;
   navAz: string;
+  navLearn: string;
   searchPlaceholder: string;
   searchLabel: string;
   searchResults: string;
@@ -70,10 +71,57 @@ export type Strings = {
   next: string;
   notTranslated: string;
 
+  /** The label that opens an "avoid" note in an entry, as the build renders it. */
+  avoidMarker: string;
+
+  learnTitle: string;
+  learnDescription: string;
+  learnCourse: string;
+  learnOpenCourse: string;
+  learnCloseCourse: string;
+  learnProgress: string;
+  learnReset: string;
+  learnResetConfirm: string;
+  learnLoading: string;
+  learnError: string;
+  /** "{link}" wraps the words that link to the curriculum. */
+  learnNoScript: string;
+  learnTermInSection: string;
+  learnStepOf: string;
+  learnSteps: string;
+  learnStepsLabel: string;
+  learnLinks: string;
+  learnKindDef: string;
+  learnKindMore: string;
+  learnKindNote: string;
+  learnKindUsage: string;
+  learnKindRecap: string;
+  learnKeyIdea: string;
+  learnBack: string;
+  /** "{label}" is the name of the next step or the next term. */
+  learnNext: string;
+  learnFinished: string;
+  learnHint: string;
+  learnHudOut: string;
+  learnHudIn: string;
+  learnHudBoth: string;
+  learnToolMap: string;
+  learnToolPage: string;
+  learnLegendHit: string;
+  learnLegendSeen: string;
+  learnLegendAhead: string;
+  learnLegendBoth: string;
+  learnDiagram: string;
+  learnNoLinks: string;
+  learnPrereq: string;
+  learnPrereqNone: string;
+  learnDone: string;
+  learnTermDone: string;
+
   notFoundTitle: string;
   notFoundDescription: string;
   notFoundLede: string;
-  /** {map}, {curriculum} and {az} wrap the linked words. */
+  /** {map}, {learn}, {curriculum} and {az} wrap the linked words. */
   notFoundHelp: string;
 
   /** Section titles, keyed by the English title in internal/Curriculum.md. */
@@ -94,6 +142,7 @@ export const STRINGS: Record<Lang, Strings> = {
     navMap: "Bản đồ",
     navCurriculum: "Giáo trình",
     navAz: "A–Z",
+    navLearn: "Học",
     searchPlaceholder: "Tìm trong {count} thuật ngữ",
     searchLabel: "Tìm thuật ngữ",
     searchResults: "Thuật ngữ khớp",
@@ -145,11 +194,57 @@ export const STRINGS: Record<Lang, Strings> = {
     notTranslated:
       "Mục này chưa có bản dịch tiếng Việt. Dưới đây là bản tiếng Anh.",
 
+    avoidMarker: "Nên tránh:",
+
+    learnTitle: "Học từng bước",
+    learnDescription:
+      "Học {count} thuật ngữ trong {site} theo từng bước, có sơ đồ liên kết cho mỗi thuật ngữ và lưu tiến độ của bạn.",
+    learnCourse: "Khoá học",
+    learnOpenCourse: "Mở danh sách khoá học",
+    learnCloseCourse: "Đóng danh sách khoá học",
+    learnProgress: "Tiến độ",
+    learnReset: "Đặt lại tiến độ",
+    learnResetConfirm: "Xoá toàn bộ tiến độ học trên trình duyệt này?",
+    learnLoading: "Đang tải khoá học…",
+    learnError: "Không tải được khoá học. Hãy tải lại trang.",
+    learnNoScript:
+      "Chế độ xem này cần JavaScript. Các thuật ngữ cũng có trong {link}danh sách giáo trình{/link}.",
+    learnTermInSection: "Thuật ngữ {i} trên {total}",
+    learnStepOf: "Bước {i} / {total}",
+    learnSteps: "{count} bước",
+    learnStepsLabel: "Các bước",
+    learnLinks: "{count} liên kết",
+    learnKindDef: "Định nghĩa",
+    learnKindMore: "Giải thích",
+    learnKindNote: "Lưu ý",
+    learnKindUsage: "Cách dùng",
+    learnKindRecap: "Tóm tắt",
+    learnKeyIdea: "Ý chính",
+    learnBack: "Lùi",
+    learnNext: "Tiếp: {label}",
+    learnFinished: "Đã hết khoá học",
+    learnHint: "chuyển bước",
+    learnHudOut: "Liên kết tới",
+    learnHudIn: "Được nhắc tới",
+    learnHudBoth: "Hai chiều",
+    learnToolMap: "Bản đồ 3D",
+    learnToolPage: "Trang riêng",
+    learnLegendHit: "nhắc tới ở bước này",
+    learnLegendSeen: "đã nhắc tới",
+    learnLegendAhead: "chưa nhắc tới",
+    learnLegendBoth: "liên kết hai chiều",
+    learnDiagram: "Sơ đồ các thuật ngữ mà “{term}” liên kết tới",
+    learnNoLinks: "Thuật ngữ này không liên kết tới thuật ngữ nào.",
+    learnPrereq: "Nên biết trước",
+    learnPrereqNone: "Không cần biết trước thuật ngữ nào.",
+    learnDone: "đã học",
+    learnTermDone: "Đã học xong: {term}",
+
     notFoundTitle: "Không tìm thấy trang",
     notFoundDescription: "Trang này không tồn tại.",
     notFoundLede: "Không có mục nào ở địa chỉ này.",
     notFoundHelp:
-      "Hãy tìm thuật ngữ ở ô phía trên, hoặc xem {map}bản đồ{/map}, {curriculum}giáo trình{/curriculum} hay {az}danh sách A–Z{/az}.",
+      "Hãy tìm thuật ngữ ở ô phía trên, hoặc xem {map}bản đồ{/map}, {learn}khoá học{/learn}, {curriculum}giáo trình{/curriculum} hay {az}danh sách A–Z{/az}.",
 
     sectionTitles: {
       "The Model": "Mô hình",
@@ -174,6 +269,7 @@ export const STRINGS: Record<Lang, Strings> = {
     navMap: "Map",
     navCurriculum: "Curriculum",
     navAz: "A–Z",
+    navLearn: "Learn",
     searchPlaceholder: "Search {count} terms",
     searchLabel: "Search terms",
     searchResults: "Matching terms",
@@ -222,11 +318,57 @@ export const STRINGS: Record<Lang, Strings> = {
     next: "Next",
     notTranslated: "",
 
+    avoidMarker: "Avoid:",
+
+    learnTitle: "Learn step by step",
+    learnDescription:
+      "Step through all {count} terms in the {site}, with a link diagram for each term and your progress saved.",
+    learnCourse: "Course",
+    learnOpenCourse: "Open the course list",
+    learnCloseCourse: "Close the course list",
+    learnProgress: "Progress",
+    learnReset: "Reset progress",
+    learnResetConfirm: "Clear all your progress in this browser?",
+    learnLoading: "Loading the course…",
+    learnError: "The course could not load. Reload the page.",
+    learnNoScript:
+      "This view needs JavaScript. The same terms are in the {link}curriculum list{/link}.",
+    learnTermInSection: "Term {i} of {total}",
+    learnStepOf: "Step {i} / {total}",
+    learnSteps: "{count} steps",
+    learnStepsLabel: "Steps",
+    learnLinks: "{count} links",
+    learnKindDef: "Definition",
+    learnKindMore: "Detail",
+    learnKindNote: "Note",
+    learnKindUsage: "Usage",
+    learnKindRecap: "Recap",
+    learnKeyIdea: "Key idea",
+    learnBack: "Back",
+    learnNext: "Next: {label}",
+    learnFinished: "End of the course",
+    learnHint: "step",
+    learnHudOut: "Links to",
+    learnHudIn: "Mentioned in",
+    learnHudBoth: "Both ways",
+    learnToolMap: "3D map",
+    learnToolPage: "Full page",
+    learnLegendHit: "mentioned in this step",
+    learnLegendSeen: "already mentioned",
+    learnLegendAhead: "not yet mentioned",
+    learnLegendBoth: "links both ways",
+    learnDiagram: "Diagram of the terms “{term}” links to",
+    learnNoLinks: "This term links to no other term.",
+    learnPrereq: "Good to know first",
+    learnPrereqNone: "No earlier term is needed.",
+    learnDone: "done",
+    learnTermDone: "Finished: {term}",
+
     notFoundTitle: "Page not found",
     notFoundDescription: "This page does not exist.",
     notFoundLede: "There is no entry at this address.",
     notFoundHelp:
-      "Search for a term above, or browse the {map}map{/map}, the {curriculum}curriculum{/curriculum} or the {az}A–Z list{/az}.",
+      "Search for a term above, or browse the {map}map{/map}, the {learn}course{/learn}, the {curriculum}curriculum{/curriculum} or the {az}A–Z list{/az}.",
 
     sectionTitles: {},
   },
