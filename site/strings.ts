@@ -106,7 +106,6 @@ export type Strings = {
   learnHudIn: string;
   learnHudBoth: string;
   learnToolMap: string;
-  learnToolPage: string;
   learnLegendHit: string;
   learnLegendSeen: string;
   learnLegendAhead: string;
@@ -181,7 +180,7 @@ export const STRINGS: Record<Lang, Strings> = {
     resetView: "Đặt lại góc nhìn",
     closeTerm: "Đóng thuật ngữ này",
     relatedTerms: "Thuật ngữ liên quan",
-    openAsPage: "Mở thuật ngữ này thành trang riêng",
+    openAsPage: "Trang riêng",
     panelEyebrow: "Phần {n} — {title} · Thuật ngữ {i}/{total}",
 
     termOf: "Thuật ngữ {i}/{total}",
@@ -228,7 +227,6 @@ export const STRINGS: Record<Lang, Strings> = {
     learnHudIn: "Được nhắc tới",
     learnHudBoth: "Hai chiều",
     learnToolMap: "Bản đồ 3D",
-    learnToolPage: "Trang riêng",
     learnLegendHit: "nhắc tới ở bước này",
     learnLegendSeen: "đã nhắc tới",
     learnLegendAhead: "chưa nhắc tới",
@@ -306,7 +304,7 @@ export const STRINGS: Record<Lang, Strings> = {
     resetView: "Reset the view",
     closeTerm: "Close this term",
     relatedTerms: "Related terms",
-    openAsPage: "Open this term as a page",
+    openAsPage: "Full page",
     panelEyebrow: "Section {n} — {title} · Term {i} of {total}",
 
     termOf: "Term {i} of {total}",
@@ -352,7 +350,6 @@ export const STRINGS: Record<Lang, Strings> = {
     learnHudIn: "Mentioned in",
     learnHudBoth: "Both ways",
     learnToolMap: "3D map",
-    learnToolPage: "Full page",
     learnLegendHit: "mentioned in this step",
     learnLegendSeen: "already mentioned",
     learnLegendAhead: "not yet mentioned",

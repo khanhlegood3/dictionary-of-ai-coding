@@ -666,7 +666,10 @@ function mapPage(site: Site): string {
 </div>
 <aside id="term-panel" class="term-panel" aria-labelledby="term-panel-title" hidden>
 <header class="term-panel-head">
+<div class="term-panel-top">
 <p class="eyebrow" id="term-panel-eyebrow"></p>
+<p class="eyebrow term-panel-links"><a id="term-panel-learn" href="${url(lang, "/learn")}">${escapeHtml(t.learnTitle)}</a><span class="sep" aria-hidden="true">·</span><a id="term-panel-page" href="${url(lang, "/")}">${escapeHtml(t.openAsPage)}</a></p>
+</div>
 <button type="button" class="icon-button" id="term-panel-close" aria-label="${label(t.closeTerm)}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
 </header>
 <div class="term-panel-body" id="term-panel-body">
@@ -676,7 +679,6 @@ function mapPage(site: Site): string {
 <h2>${escapeHtml(t.relatedTerms)}</h2>
 <ul id="term-panel-related"></ul>
 </section>
-<p class="term-panel-more"><a id="term-panel-page" href="${url(lang, "/")}">${escapeHtml(t.openAsPage)}</a></p>
 </div>
 <nav class="pager term-panel-pager" aria-label="${label(t.pagerLabel)}">
 <a class="prev" id="term-panel-prev" href="${url(lang, "/")}" rel="prev"><span class="dir">${escapeHtml(t.previous)}</span><span class="term"></span></a>
@@ -786,7 +788,7 @@ ${
     main: `<div class="entry-layout">
 ${sidebar(site, e)}
 <article class="entry">
-<p class="eyebrow"><a href="${url(lang, `/curriculum#section-${e.section.number}`)}">${escapeHtml(fill(t.section, { n: e.section.number }))} — ${escapeHtml(sectionTitle(site, e.section))}</a>${sep}${escapeHtml(fill(t.termOf, { i: e.position, total: entries.length }))}${sep}<a href="${url(lang, `/?term=${e.slug}`)}">${escapeHtml(t.viewInMap)}</a></p>
+<p class="eyebrow"><a href="${url(lang, `/curriculum#section-${e.section.number}`)}">${escapeHtml(fill(t.section, { n: e.section.number }))} — ${escapeHtml(sectionTitle(site, e.section))}</a>${sep}${escapeHtml(fill(t.termOf, { i: e.position, total: entries.length }))}${sep}<a href="${url(lang, `/?term=${e.slug}`)}">${escapeHtml(t.viewInMap)}</a>${sep}<a href="${url(lang, `/learn#/${e.slug}`)}">${escapeHtml(t.learnTitle)}</a></p>
 <h1>${escapeHtml(e.term)}</h1>
 ${entryHtml(site, e)}
 ${backlinks}
@@ -1047,7 +1049,7 @@ ${hud("lx-hud-both", t.learnHudBoth, "both")}
 </dl>
 <div class="lx-stage__tools">
 <a class="lx-tool" id="lx-tool-map" href="${url(lang, "/")}">${text(t.learnToolMap)}</a>
-<a class="lx-tool" id="lx-tool-page" href="${url(lang, "/curriculum")}">${text(t.learnToolPage)}</a>
+<a class="lx-tool" id="lx-tool-page" href="${url(lang, "/curriculum")}">${text(t.openAsPage)}</a>
 </div>
 </div>
 <div class="lx-canvas" id="lx-canvas" role="group">
