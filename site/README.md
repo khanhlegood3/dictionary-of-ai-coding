@@ -19,9 +19,13 @@
 | `internal/adr/*.md`      | The decision records listed on `/tasks`           |
 | `site/tasks.js`          | Loads the GitHub issues on `/tasks` in the browser, copied as written |
 | `site/tasks.css`         | Styles of `/tasks`, loaded after `styles.css`     |
+| `api/mcp.ts`             | The MCP server. Its tool list is also printed on `/agents/mcp` |
+| `site/agents.js`         | Checks the MCP server and runs the search box on `/agents`, copied as written |
+| `site/agents.css`        | Styles of `/agents`, loaded after `styles.css`    |
 
-There is no server code. Every page is built from the markdown files, so
-editing an entry and rebuilding is the whole publishing step. The only data
+Every page is built from the markdown files, so editing an entry and
+rebuilding is the whole publishing step. The only server code is the MCP
+server in `api/mcp.ts`: see [For AI agents](#for-ai-agents). The only data
 that is not in this repository is the Learn progress of visitors who sign in:
 see [Progress and sync](#progress-and-sync).
 
@@ -34,6 +38,8 @@ see [Progress and sync](#progress-and-sync).
 | `/curriculum` | Every term in teaching order, grouped by section    |
 | `/a-z`        | Every term in alphabetical order                    |
 | `/tasks`      | The project's open tasks and decision records       |
+| `/agents`     | The files for machines, and a link to the MCP guide |
+| `/agents/mcp` | How to connect to the MCP server, and its tools     |
 | `/<slug>`     | One term, as a plain page that works without script |
 
 The Vietnamese pages are at these paths. The English pages are the same paths
@@ -267,15 +273,81 @@ section forms a loose region.
 give the same map. The map has no runtime dependencies: `site/graph.js` draws
 on a 2D canvas with its own perspective projection.
 
+## For AI agents
+
+The dictionary is also published as data, in two ways. Both come from the same
+build, and [ADR 0006](../internal/adr/0006-read-only-mcp-server-and-machine-readable-files.md)
+records the decision.
+
+### Files
+
+The build writes these next to the pages. `/agents` lists them, and the build
+stops if a listed file was not written.
+
+| File                              | Holds                                             |
+| --------------------------------- | ------------------------------------------------- |
+| `/llms.txt`, `/en/llms.txt`       | One line per term, in teaching order              |
+| `/llms-full.txt`, `/en/llms-full.txt` | Every entry in full, as markdown              |
+| `/data/index.json`                | Every term with its descriptions and addresses    |
+| `/data/terms/<slug>.json`         | One term in both languages, with its links        |
+| `/data/graph.json`                | The terms and the links between them              |
+| `/data/corpus.json`               | Everything in one file. The MCP server reads it   |
+| `/sitemap.xml`, `/robots.txt`     | Every page in both languages                      |
+
+The files carry full addresses. They start with `SITE_URL` in `site/build.ts`,
+which the environment variable `SITE_URL` can replace. `/graph.json` at the
+root is a different file: it holds the 3D positions for the term map.
+
+### MCP server
+
+`api/mcp.ts` is a Model Context Protocol server: one Vercel function at
+`/api/mcp`. It is not at `/mcp`, because that is the page of the term "MCP".
+
+- It only reads, needs no sign-in and keeps no session.
+- It holds no data. On the first call it fetches `/data/corpus.json` from its
+  own site and keeps it in memory.
+- It imports nothing, so Vercel, the build and `site/serve.ts` all load the
+  same file.
+- `GET /status.json` says whether the server can read the corpus.
+
+| Limit                | Value                         | Over the limit |
+| -------------------- | ----------------------------- | -------------- |
+| Request body         | 64 KiB                        | `413`          |
+| Requests per address | 60 per 60 seconds             | `429` with `Retry-After` |
+| Messages in a batch  | 10                            | `400`          |
+
+The rate limit is counted in memory by each running copy of the function, so
+it slows one noisy caller down. It is not a hard limit.
+
+To add or change a tool, edit the `TOOLS` array in `api/mcp.ts`. The server
+answers `tools/list` from that array and the build prints `/agents/mcp` from
+it, so the page follows on the next build. `LIMITS` works the same way.
+
+On a preview deployment that Vercel protects with a sign-in, the function
+cannot fetch the corpus unless the project sets the environment variable
+`VERCEL_AUTOMATION_BYPASS_SECRET`. Production is not protected.
+
 ## Preview locally
 
 ```sh
 npm run build
-python3 -m http.server 3000 --directory dist
+npm run preview
+```
+
+`site/serve.ts` serves `dist/` at `http://localhost:3000` the way Vercel does:
+clean addresses, the 404 page, and the MCP server at `/api/mcp`. Restart it
+after a new build, because the MCP server keeps the corpus it read first.
+
+```sh
+curl -s http://localhost:3000/api/mcp \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"context window"}}}'
 ```
 
 ## Deploy
 
-`vercel.json` tells Vercel to run `npm run build` and serve `dist/`. A project
+`vercel.json` tells Vercel to run `npm run build` and serve `dist/`. Vercel
+also turns `api/mcp.ts` into a function, and `vercel.json` sends
+`/status.json` to it. A project
 linked to this repository deploys on every push: the production branch goes to
 the production domain, and other branches get preview deployments.

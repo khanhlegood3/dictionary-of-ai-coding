@@ -4,10 +4,13 @@
 // The markdown files are the only data source. There is no database.
 // The tasks page also reads internal/adr/*.md, and the build saves a copy of
 // the repository's GitHub issues in it when GitHub can be reached.
+// The same data is also written as files for machines (llms.txt, /data/*.json,
+// sitemap.xml), and /agents documents them and the MCP server in api/mcp.ts.
 //
 // The site is built once per language. Vietnamese is the default and lives at
 // the root; English lives under /en. Both share the same terms, slugs and map.
 
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -20,6 +23,17 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
+import {
+  CORPUS_PATH,
+  DOCS_PATH,
+  LIMITS,
+  PROTOCOL_VERSIONS,
+  SERVER,
+  STATUS_PATH,
+  TOOLS,
+  type Corpus,
+  type CorpusText,
+} from "../api/mcp";
 import { layoutGraph } from "./layout";
 import {
   BASE,
@@ -44,6 +58,22 @@ const ADR_DIR = join(ROOT, "internal", "adr");
 /** The GitHub repository whose issues and decision records /tasks shows. */
 const REPO = "khanhlegood3/dictionary-of-ai-coding";
 const REPO_URL = `https://github.com/${REPO}`;
+
+/** Where the English entries come from. */
+const UPSTREAM_URL = "https://github.com/mattpocock/dictionary-of-ai-coding";
+/**
+ * The public address of the site, without a slash at the end. The files for
+ * machines carry full addresses, so the build has to know it.
+ */
+const SITE_URL = (process.env.SITE_URL || "https://ai9k.vercel.app").replace(
+  /\/+$/,
+  ""
+);
+/**
+ * The address of the MCP server: the function in api/mcp.ts. It is not at
+ * /mcp, because that is the page of the term "MCP".
+ */
+const MCP_PATH = "/api/mcp";
 
 const AUTHOR_NAME = "Lê Xuân Khánh";
 const AUTHOR_URL = "https://khanhxl.vercel.app/";
@@ -71,8 +101,11 @@ const USAGE_MARKER = "_Usage:_";
 // Paths the site itself uses. A term may not take one of them.
 const RESERVED_SLUGS = new Set([
   "a-z",
+  "agents",
+  "api",
   "assets",
   "curriculum",
+  "data",
   "en",
   "learn",
   "tasks",
@@ -91,6 +124,10 @@ type EntryText = {
   blocks: string[];
   /** The lines of the usage dialogue, as inline HTML. */
   usageLines: string[];
+  /** The body as markdown, for machines. Links to terms are full addresses. */
+  markdown: string;
+  /** The usage dialogue as markdown. Empty when the entry has none. */
+  usageMarkdown: string;
   /** False when the language has no translation and English is shown instead. */
   translated: boolean;
 };
@@ -265,18 +302,27 @@ function renderEntryText(
 ): EntryText & { linksTo: Set<string> } {
   const { description, name, body } = parseEntryFile(path);
   const linksTo = new Set<string>();
-  const linked = body.replace(LINK_RE, (_, text: string, target: string) => {
-    const name = decodeURIComponent(target);
-    const slug = slugs.get(name);
-    if (!slug) fail(`${label} links to unknown entry "${name}"`);
-    if (name !== term) linksTo.add(name);
-    return `[${text}](${url(lang, `/${slug}`)})`;
-  });
+  /** The entry with its links pointing at pages under `origin`. */
+  const withLinks = (origin: string) =>
+    body.replace(LINK_RE, (_, text: string, target: string) => {
+      const name = decodeURIComponent(target);
+      const slug = slugs.get(name);
+      if (!slug) fail(`${label} links to unknown entry "${name}"`);
+      if (name !== term) linksTo.add(name);
+      return `[${text}](${origin}${url(lang, `/${slug}`)})`;
+    });
+  const split = (text: string) => {
+    const markerAt = text.indexOf(`\n${USAGE_MARKER}\n`);
+    return markerAt === -1
+      ? { main: text.trim(), usage: "" }
+      : {
+          main: text.slice(0, markerAt).trim(),
+          usage: text.slice(markerAt + USAGE_MARKER.length + 2).trim(),
+        };
+  };
 
-  const markerAt = linked.indexOf(`\n${USAGE_MARKER}\n`);
-  const main = markerAt === -1 ? linked : linked.slice(0, markerAt);
-  const usage =
-    markerAt === -1 ? "" : linked.slice(markerAt + USAGE_MARKER.length + 2);
+  const { main, usage } = split(withLinks(""));
+  const absolute = split(withLinks(SITE_URL));
 
   const lines = usageLines(usage);
   return {
@@ -286,6 +332,8 @@ function renderEntryText(
     usageHtml: renderUsage(lines, STRINGS[lang].usage),
     blocks: renderBlocks(main),
     usageLines: lines,
+    markdown: absolute.main,
+    usageMarkdown: absolute.usage,
     translated: true,
     linksTo,
   };
@@ -466,13 +514,14 @@ function layout(
      * The map and Learn pages fill the viewport, load their own script and
      * have no footer.
      */
-    variant?: "map" | "learn" | "tasks";
+    variant?: "map" | "learn" | "tasks" | "agents";
   }
 ): string {
   const { lang, t } = site;
   const isMap = opts.variant === "map";
   const isLearn = opts.variant === "learn";
   const isTasks = opts.variant === "tasks";
+  const isAgents = opts.variant === "agents";
   const isApp = isMap || isLearn;
   const assets = isMap
     ? '\n<script src="/assets/graph.js" defer></script>'
@@ -486,7 +535,11 @@ function layout(
         ? `
 <link rel="stylesheet" href="/assets/tasks.css">
 <script src="/assets/tasks.js" defer></script>`
-        : "";
+        : isAgents
+          ? `
+<link rel="stylesheet" href="/assets/agents.css">
+<script src="/assets/agents.js" defer></script>`
+          : "";
   const fullTitle =
     opts.title === t.siteName ? t.siteName : `${opts.title} — ${t.siteName}`;
   const current = (key: string) =>
@@ -538,7 +591,7 @@ ${opts.main}
 <footer class="site-footer">
 <div class="wrap footer-inner">
 <p>${credit(site)}</p>
-<p><a href="${url(lang, "/tasks")}"${isTasks ? ' aria-current="page"' : ""}>${escapeHtml(t.tasksNav)}</a></p>
+<p class="footer-links"><a href="${url(lang, "/agents")}"${isAgents ? ' aria-current="page"' : ""}>${escapeHtml(t.agentsNav)}</a><a href="${url(lang, "/tasks")}"${isTasks ? ' aria-current="page"' : ""}>${escapeHtml(t.tasksNav)}</a></p>
 </div>
 </footer>`
   }
@@ -1438,6 +1491,471 @@ ${adrCards}
   });
 }
 
+// ------------------------------------------------------- files for machines
+
+type MachineFile = {
+  /** Key of its description in Strings.agentsFiles. */
+  key: string;
+  /** The path as shown. It may hold "{slug}". */
+  path: string;
+  /** A path of this kind that exists, to link to. */
+  example: string;
+};
+
+/** The files the site publishes for machines, in the order /agents lists them. */
+function machineFiles(entries: Entry[]): MachineFile[] {
+  const perLanguage = (key: string, name: string): MachineFile[] =>
+    LANGS.map((lang) => {
+      const path = url(lang, `/${name}`);
+      return { key: BASE[lang] ? `${key}_${lang}` : key, path, example: path };
+    });
+  const one = (key: string, path: string): MachineFile => ({
+    key,
+    path,
+    example: path,
+  });
+  return [
+    ...perLanguage("llms", "llms.txt"),
+    ...perLanguage("llms_full", "llms-full.txt"),
+    one("index", "/data/index.json"),
+    {
+      key: "term",
+      path: "/data/terms/{slug}.json",
+      example: `/data/terms/${entries[0]?.slug ?? ""}.json`,
+    },
+    one("graph", "/data/graph.json"),
+    one("corpus", CORPUS_PATH),
+    one("sitemap", "/sitemap.xml"),
+    one("robots", "/robots.txt"),
+  ];
+}
+
+/** Everything the MCP server answers from, and the source of the other files. */
+function buildCorpus(sections: Section[], entries: Entry[]): Corpus {
+  const slugOf = new Map(entries.map((e) => [e.term, e.slug]));
+  const perLanguage = <T>(value: (lang: Lang) => T) =>
+    Object.fromEntries(LANGS.map((lang) => [lang, value(lang)])) as Record<
+      Lang,
+      T
+    >;
+
+  const content = {
+    sections: sections.map((s) => ({
+      number: s.number,
+      title: perLanguage(
+        (lang) => STRINGS[lang].sectionTitles[s.title] ?? s.title
+      ),
+    })),
+    terms: entries.map((e) => ({
+      slug: e.slug,
+      term: e.term,
+      section: e.section.number,
+      position: e.position,
+      links: [...e.linksTo].map((term) => slugOf.get(term) as string),
+      text: perLanguage((lang): CorpusText => {
+        const text = e.text[lang];
+        return {
+          ...(text.name ? { name: text.name } : {}),
+          description: text.description,
+          body: text.markdown,
+          usage: text.usageMarkdown,
+          translated: text.translated,
+        };
+      }),
+    })),
+  };
+  const files: Record<string, string> = {};
+  for (const file of machineFiles(entries)) files[file.key] = file.path;
+
+  return {
+    // The same content always gives the same version.
+    version: createHash("sha256")
+      .update(JSON.stringify(content))
+      .digest("hex")
+      .slice(0, 12),
+    site: SITE_URL,
+    languages: LANGS,
+    default_language: LANGS[0] as Lang,
+    base: BASE,
+    about: perLanguage((lang) => ({
+      name: STRINGS[lang].siteName,
+      description: STRINGS[lang].tagline,
+    })),
+    repository: REPO_URL,
+    upstream: UPSTREAM_URL,
+    files: { ...files, mcp: MCP_PATH, status: STATUS_PATH, docs: DOCS_PATH },
+    ...content,
+  };
+}
+
+/** A value per language, such as the address of a term's page. */
+function eachLanguage<T>(corpus: Corpus, value: (lang: Lang) => T) {
+  return Object.fromEntries(
+    corpus.languages.map((lang) => [lang, value(lang)])
+  );
+}
+
+function pageUrl(lang: Lang, path: string): string {
+  return SITE_URL + url(lang, path);
+}
+
+/** /data/index.json: every term, without its text. */
+function indexData(corpus: Corpus): string {
+  return JSON.stringify(
+    {
+      site: corpus.site,
+      version: corpus.version,
+      languages: corpus.languages,
+      default_language: corpus.default_language,
+      count: corpus.terms.length,
+      sections: corpus.sections,
+      terms: corpus.terms.map((term) => ({
+        slug: term.slug,
+        term: term.term,
+        section: term.section,
+        position: term.position,
+        name: eachLanguage(corpus, (lang) => term.text[lang].name ?? null),
+        description: eachLanguage(
+          corpus,
+          (lang) => term.text[lang].description
+        ),
+        url: eachLanguage(corpus, (lang) => pageUrl(lang, `/${term.slug}`)),
+        data_url: `${SITE_URL}/data/terms/${term.slug}.json`,
+      })),
+    },
+    null,
+    1
+  );
+}
+
+/** /data/terms/<slug>.json: one term in every language, with its links. */
+function termData(corpus: Corpus, slug: string): string {
+  const at = corpus.terms.findIndex((term) => term.slug === slug);
+  const term = corpus.terms[at];
+  if (!term) fail(`No term has the slug "${slug}".`);
+  const named = (other: string) => ({
+    slug: other,
+    term: corpus.terms.find((t) => t.slug === other)?.term ?? other,
+    data_url: `${SITE_URL}/data/terms/${other}.json`,
+  });
+  return JSON.stringify(
+    {
+      slug: term.slug,
+      term: term.term,
+      section: corpus.sections.find((s) => s.number === term.section),
+      position: term.position,
+      url: eachLanguage(corpus, (lang) => pageUrl(lang, `/${term.slug}`)),
+      text: term.text,
+      links: term.links.map(named),
+      linked_from: corpus.terms
+        .filter((other) => other.links.includes(term.slug))
+        .map((other) => named(other.slug)),
+      previous: corpus.terms[at - 1]?.slug ?? null,
+      next: corpus.terms[at + 1]?.slug ?? null,
+      corpus_version: corpus.version,
+    },
+    null,
+    1
+  );
+}
+
+/** /data/graph.json: the terms and the links between them, and nothing else. */
+function publicGraph(corpus: Corpus): string {
+  return JSON.stringify(
+    {
+      site: corpus.site,
+      version: corpus.version,
+      sections: corpus.sections,
+      nodes: corpus.terms.map((term) => ({
+        id: term.slug,
+        term: term.term,
+        section: term.section,
+        position: term.position,
+      })),
+      // One edge for each link written in an entry, from that entry.
+      edges: corpus.terms.flatMap((term) =>
+        term.links.map((target) => ({ source: term.slug, target }))
+      ),
+    },
+    null,
+    1
+  );
+}
+
+/** The heading of a term in a text file: the English term, then its name. */
+function termHeading(site: Site, e: Entry): string {
+  const name = e.text[site.lang].name;
+  return name ? `${e.term} (${name})` : e.term;
+}
+
+function textFileHead(site: Site, note: string): string {
+  return `# ${site.t.siteName}\n\n> ${site.t.tagline}\n\n${note}\n`;
+}
+
+/** /llms.txt: what the site is, then one line per term. */
+function llmsText(site: Site, corpus: Corpus): string {
+  const { lang, t, sections, entries } = site;
+  const other = LANGS.filter((l) => l !== lang)
+    .map((l) => pageUrl(l, "/llms.txt"))
+    .join(", ");
+  const intro = fill(t.llmsIntro, {
+    count: entries.length,
+    sections: sections.length,
+    full: pageUrl(lang, "/llms-full.txt"),
+    other,
+    index: `${SITE_URL}/data/index.json`,
+    mcp: SITE_URL + MCP_PATH,
+    docs: pageUrl(lang, DOCS_PATH),
+  });
+  const body = sections
+    .map(
+      (s) =>
+        `## ${s.number}. ${sectionTitle(site, s)}\n\n${s.entries
+          .map(
+            (e) =>
+              `- [${termHeading(site, e)}](${pageUrl(lang, `/${e.slug}`)}): ${e.text[lang].description}`
+          )
+          .join("\n")}`
+    )
+    .join("\n\n");
+  return `${textFileHead(site, intro)}\nVersion: ${corpus.version}\n\n${body}\n`;
+}
+
+/** /llms-full.txt: every entry in full, in teaching order. */
+function llmsFullText(site: Site): string {
+  const { lang, t, sections, entries } = site;
+  const note = fill(t.curriculumMeta, {
+    count: entries.length,
+    sections: sections.length,
+  });
+  const body = sections
+    .map(
+      (s) =>
+        `## ${s.number}. ${sectionTitle(site, s)}\n\n${s.entries
+          .map((e) => {
+            const text = e.text[lang];
+            return [
+              `### ${termHeading(site, e)}`,
+              `URL: ${pageUrl(lang, `/${e.slug}`)}`,
+              `> ${text.description}`,
+              text.markdown,
+              ...(text.usageMarkdown
+                ? [`**${t.usage}**`, text.usageMarkdown]
+                : []),
+            ].join("\n\n");
+          })
+          .join("\n\n")}`
+    )
+    .join("\n\n");
+  return `${textFileHead(site, note)}\n${body}\n`;
+}
+
+/** /sitemap.xml: every page, each with its address in the other language. */
+function sitemap(entries: Entry[]): string {
+  const paths = [
+    "/",
+    "/learn",
+    "/curriculum",
+    "/a-z",
+    "/agents",
+    DOCS_PATH,
+    "/tasks",
+    ...entries.map((e) => `/${e.slug}`),
+  ];
+  const urls = paths.flatMap((path) =>
+    LANGS.map(
+      (lang) => `<url>
+<loc>${escapeHtml(pageUrl(lang, path))}</loc>
+${LANGS.map(
+  (other) =>
+    `<xhtml:link rel="alternate" hreflang="${other}" href="${escapeHtml(pageUrl(other, path))}"/>`
+).join("\n")}
+</url>`
+    )
+  );
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join("\n")}
+</urlset>
+`;
+}
+
+// ------------------------------------------------------------ agents pages
+
+/** The line on a page that says whether the MCP server answers right now. */
+function mcpStatus(site: Site): string {
+  const { t } = site;
+  return `<span class="mcp-status" data-mcp-status data-endpoint="${MCP_PATH}" data-ok="${escapeHtml(t.agentsStatusOk)}" data-down="${escapeHtml(t.agentsStatusDown)}" role="status">${escapeHtml(t.agentsStatusChecking)}</span>`;
+}
+
+function facts(rows: [string, string][]): string {
+  return `<dl class="facts">
+${rows.map(([name, value]) => `<div><dt>${escapeHtml(name)}</dt><dd>${value}</dd></div>`).join("\n")}
+</dl>`;
+}
+
+function code(text: string): string {
+  return `<code>${escapeHtml(text)}</code>`;
+}
+
+/** /agents: the two ways a machine can read the dictionary. */
+function agentsPage(site: Site, files: MachineFile[]): string {
+  const { lang, t } = site;
+  const list = files
+    .map((file) => {
+      const what = t.agentsFiles[file.key];
+      if (!what)
+        fail(
+          `site/strings.ts has no "${lang}" text for the file "${file.key}".`
+        );
+      return `<li><a href="${file.example}">${code(file.path)}</a><span>${escapeHtml(what)}</span></li>`;
+    })
+    .join("\n");
+  return layout(site, {
+    title: t.agentsTitle,
+    description: fill(t.agentsDescription, { site: t.siteName }),
+    path: "/agents",
+    nav: null,
+    variant: "agents",
+    main: `<div class="agents">
+<div class="hero hero-compact">
+<h1>${escapeHtml(t.agentsTitle)}</h1>
+<p class="lede">${escapeHtml(t.agentsLede)}</p>
+</div>
+<section class="section" aria-labelledby="mcp-heading">
+<h2 id="mcp-heading">${escapeHtml(t.agentsMcpTitle)}</h2>
+<p>${escapeHtml(t.agentsMcpLede)}</p>
+${facts([
+  [t.agentsEndpoint, code(SITE_URL + MCP_PATH)],
+  [t.agentsStatusLabel, mcpStatus(site)],
+])}
+<p><a class="more" href="${url(lang, DOCS_PATH)}">${escapeHtml(t.agentsMcpMore)}</a></p>
+</section>
+<section class="section" aria-labelledby="files-heading">
+<h2 id="files-heading">${escapeHtml(t.agentsFilesTitle)}</h2>
+<p>${escapeHtml(t.agentsFilesLede)}</p>
+<ul class="file-list">
+${list}
+</ul>
+<p class="agents-source">${linkify(t.agentsSource, { repo: REPO_URL, upstream: UPSTREAM_URL })}</p>
+</section>
+</div>`,
+  });
+}
+
+/** How a JSON schema property reads in one short phrase. */
+function schemaType(schema: Record<string, unknown>): string {
+  if (Array.isArray(schema.enum))
+    return schema.enum.map((value) => JSON.stringify(value)).join(" | ");
+  if (schema.type === "array") {
+    const items = schema.items as Record<string, unknown> | undefined;
+    return `${items ? schemaType(items) : "any"}[]`;
+  }
+  return Array.isArray(schema.type)
+    ? schema.type.join(" | ")
+    : String(schema.type ?? "any");
+}
+
+/** /agents/mcp: how to connect to the MCP server, and what its tools do. */
+function mcpPage(site: Site): string {
+  const { lang, t } = site;
+  const endpoint = SITE_URL + MCP_PATH;
+  const config = JSON.stringify(
+    { mcpServers: { [SERVER.name]: { type: "http", url: endpoint } } },
+    null,
+    2
+  );
+  // The tool texts are the server's own, in English, on every page.
+  const english = lang === "en" ? "" : ' lang="en"';
+  const tools = TOOLS.map((tool) => {
+    const properties = (tool.inputSchema.properties ?? {}) as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const required = (tool.inputSchema.required ?? []) as string[];
+    const args = Object.entries(properties)
+      .map(
+        ([name, schema]) =>
+          `<li>${code(name)} <span class="arg-type">${escapeHtml(schemaType(schema))}</span> <span class="arg-need">${escapeHtml(required.includes(name) ? t.agentsRequired : t.agentsOptional)}</span><p${english}>${escapeHtml(String(schema.description ?? ""))}</p></li>`
+      )
+      .join("\n");
+    return `<article class="tool" id="tool-${tool.name}">
+<h3>${code(tool.name)}<span${english}>${escapeHtml(tool.title)}</span></h3>
+<p${english}>${escapeHtml(tool.description)}</p>
+<h4>${escapeHtml(t.agentsArguments)}</h4>
+<ul class="args">
+${args}
+</ul>
+</article>`;
+  }).join("\n");
+
+  return layout(site, {
+    title: t.agentsMcpTitle,
+    description: fill(t.agentsDescription, { site: t.siteName }),
+    path: DOCS_PATH,
+    nav: null,
+    variant: "agents",
+    main: `<div class="agents">
+<div class="hero hero-compact">
+<p class="eyebrow"><a href="${url(lang, "/agents")}">${escapeHtml(t.agentsTitle)}</a></p>
+<h1>${escapeHtml(t.agentsMcpTitle)}</h1>
+<p class="lede">${escapeHtml(t.agentsMcpLede)}</p>
+</div>
+<section class="section" aria-labelledby="connect-heading">
+<h2 id="connect-heading">${escapeHtml(t.agentsConnectTitle)}</h2>
+${facts([
+  [t.agentsEndpoint, code(endpoint)],
+  [t.agentsTransport, escapeHtml(t.agentsTransportValue)],
+  [t.agentsProtocol, PROTOCOL_VERSIONS.map(code).join(", ")],
+  [t.agentsMethods, `${code("POST")}, ${code("OPTIONS")}`],
+  [t.agentsBodyCap, `${LIMITS.bodyBytes / 1024} KiB`],
+  [
+    t.agentsRate,
+    escapeHtml(
+      fill(t.agentsRateValue, {
+        count: LIMITS.requests,
+        seconds: LIMITS.windowSeconds,
+      })
+    ),
+  ],
+  [
+    t.agentsStatusLabel,
+    `${mcpStatus(site)} <a href="${STATUS_PATH}">${code(STATUS_PATH)}</a>`,
+  ],
+])}
+<p class="agents-note">${escapeHtml(t.agentsLimitsNote)}</p>
+<p>${escapeHtml(t.agentsConnectConfig)}</p>
+<pre><code>${escapeHtml(config)}</code></pre>
+<p>${escapeHtml(t.agentsConnectClaude)}</p>
+<pre><code>${escapeHtml(`claude mcp add --transport http ${SERVER.name} ${endpoint}`)}</code></pre>
+</section>
+<section class="section" aria-labelledby="try-heading">
+<h2 id="try-heading">${escapeHtml(t.agentsTryTitle)}</h2>
+<p>${escapeHtml(t.agentsTryLede)}</p>
+<form class="try" id="mcp-try" data-endpoint="${MCP_PATH}" data-lang="${lang}" data-empty="${escapeHtml(t.agentsTryEmpty)}" data-error="${escapeHtml(t.agentsTryError)}">
+<label for="mcp-query">${escapeHtml(t.agentsTryLabel)}</label>
+<div class="try-row">
+<input id="mcp-query" name="query" type="text" maxlength="${LIMITS.textLength}" placeholder="${escapeHtml(t.agentsTryPlaceholder)}" autocomplete="off" spellcheck="false" required>
+<button type="submit">${escapeHtml(t.agentsTryButton)}</button>
+</div>
+</form>
+<div id="mcp-results" class="try-results" aria-live="polite"></div>
+<details id="mcp-raw" class="try-raw" hidden>
+<summary>${escapeHtml(t.agentsTryRaw)}</summary>
+<pre><code></code></pre>
+</details>
+</section>
+<section class="section" aria-labelledby="tools-heading">
+<h2 id="tools-heading">${escapeHtml(t.agentsToolsTitle)}</h2>
+<p>${escapeHtml(fill(t.agentsToolsLede, { count: TOOLS.length }))}</p>
+${tools}
+</section>
+</div>`,
+  });
+}
+
+// ----------------------------------------------------------------- not found
+
 function notFoundHelp(site: Site): string {
   return linkify(site.t.notFoundHelp, {
     map: url(site.lang, "/"),
@@ -1475,7 +1993,11 @@ const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><re
 
 // --------------------------------------------------------------------- main
 
+/** Every file written so far, as a path from the site root. */
+const written = new Set<string>();
+
 function write(relPath: string, content: string): void {
+  written.add(`/${relPath}`);
   const path = join(OUT, relPath);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, content);
@@ -1501,6 +2023,8 @@ async function main(): Promise<void> {
   copyFileSync(join(HERE, "learn.js"), join(OUT, "assets", "learn.js"));
   copyFileSync(join(HERE, "tasks.css"), join(OUT, "assets", "tasks.css"));
   copyFileSync(join(HERE, "tasks.js"), join(OUT, "assets", "tasks.js"));
+  copyFileSync(join(HERE, "agents.css"), join(OUT, "assets", "agents.css"));
+  copyFileSync(join(HERE, "agents.js"), join(OUT, "assets", "agents.js"));
   copyFileSync(
     join(HERE, "learn-store.js"),
     join(OUT, "assets", "learn-store.js")
@@ -1523,6 +2047,27 @@ async function main(): Promise<void> {
   }
   write("favicon.svg", FAVICON);
 
+  // The files for machines come first: the /agents page lists what was written.
+  const corpus = buildCorpus(sections, entries);
+  write(CORPUS_PATH.slice(1), JSON.stringify(corpus));
+  write("data/index.json", indexData(corpus));
+  write("data/graph.json", publicGraph(corpus));
+  for (const term of corpus.terms)
+    write(`data/terms/${term.slug}.json`, termData(corpus, term.slug));
+  for (const site of sites) {
+    write(url(site.lang, "/llms.txt").slice(1), llmsText(site, corpus));
+    write(url(site.lang, "/llms-full.txt").slice(1), llmsFullText(site));
+  }
+  write("sitemap.xml", sitemap(entries));
+  write(
+    "robots.txt",
+    `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`
+  );
+  const files = machineFiles(entries);
+  for (const file of files)
+    if (!written.has(file.example))
+      fail(`/agents lists ${file.path}, but the build did not write it.`);
+
   for (const site of sites) {
     // "" for the default language, "en/" for English.
     const dir = BASE[site.lang].replace(/^\//, "");
@@ -1533,6 +2078,8 @@ async function main(): Promise<void> {
     write(at("learn/index.html"), learnPage(site));
     write(at("learn.json"), learnData(site));
     write(at("tasks/index.html"), tasksPage(site, adrs, snapshot));
+    write(at("agents/index.html"), agentsPage(site, files));
+    write(at("agents/mcp/index.html"), mcpPage(site));
     write(at("curriculum/index.html"), curriculumPage(site));
     write(at("a-z/index.html"), azPage(site));
     for (const e of entries) {
@@ -1557,6 +2104,9 @@ async function main(): Promise<void> {
   for (const w of warnings) console.warn(`warning: ${w}`);
   console.log(
     `Built ${entries.length} entries in ${sections.length} sections, in ${LANGS.length} languages (${LANGS.join(", ")}), into dist/`
+  );
+  console.log(
+    `For machines: corpus ${corpus.version}, ${files.length} kinds of file, ${TOOLS.length} MCP tools documented`
   );
   console.log(
     `Tasks page: ${adrs.length} decision records, ${snapshot ? `${snapshot.tasks.length} issues saved` : "no saved issues"}`

@@ -1,0 +1,277 @@
+/* The /agents pages: the MCP server and the files for machines. */
+
+.agents {
+  max-width: 52rem;
+}
+
+.agents .section > h2 {
+  margin-bottom: 12px;
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+}
+
+.agents .section p {
+  margin: 0 0 1em;
+}
+
+.agents code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.agents pre {
+  margin: 0 0 1.15em;
+  overflow-x: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.agents-note,
+.agents-source {
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.agents .more {
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------- facts */
+
+.facts {
+  margin: 0 0 1.15em;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  gap: 4px 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.facts > div:last-child {
+  border-bottom: 0;
+}
+
+.facts dt {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.mcp-status::before {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.5em;
+  border-radius: 50%;
+  background: var(--muted);
+  vertical-align: 0.08em;
+}
+
+.mcp-status[data-state="ok"]::before {
+  background: #2e8b57;
+}
+
+.mcp-status[data-state="down"]::before {
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------- files */
+
+.file-list {
+  margin: 0 0 1.15em;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.file-list li {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 4px 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.file-list li:last-child {
+  border-bottom: 0;
+}
+
+.file-list span {
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ try it */
+
+.try label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.try-row {
+  display: flex;
+  gap: 8px;
+}
+
+.try input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.try button {
+  min-height: 44px;
+  padding: 8px 18px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.try button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.try-results {
+  margin-top: 16px;
+}
+
+.try-results ol {
+  margin: 0 0 1.15em;
+  padding-left: 1.4em;
+}
+
+.try-results li + li {
+  margin-top: 10px;
+}
+
+.try-results li a {
+  font-weight: 600;
+}
+
+.try-results li span {
+  display: block;
+  color: var(--muted);
+}
+
+.try-message {
+  color: var(--muted);
+}
+
+.try-raw summary {
+  margin-bottom: 10px;
+  font-size: 0.9375rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.try-raw pre {
+  max-height: 24rem;
+}
+
+/* ------------------------------------------------------------------- tools */
+
+.tool {
+  margin: 0 0 16px;
+  padding: 18px 20px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  scroll-margin-top: calc(var(--header-height) + 16px);
+}
+
+.tool h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  font-family: var(--sans);
+  font-size: 1rem;
+}
+
+.tool h3 code {
+  font-size: 1.0625rem;
+  color: var(--accent);
+}
+
+.tool h3 span {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.tool h4 {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.args {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.args li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.args li p {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.arg-type,
+.arg-need {
+  margin-left: 6px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.arg-type {
+  font-family: var(--mono);
+}
+
+@media (max-width: 640px) {
+  .facts > div,
+  .file-list li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tool {
+    padding: 16px 14px 4px;
+  }
+}

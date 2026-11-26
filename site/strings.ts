@@ -174,6 +174,58 @@ export type Strings = {
   /** Names shown for known issue labels. Other labels show as written. */
   tasksLabelNames: Record<string, string>;
 
+  agentsNav: string;
+  agentsTitle: string;
+  /** "{site}" is replaced by the site name. */
+  agentsDescription: string;
+  agentsLede: string;
+  agentsMcpTitle: string;
+  agentsMcpLede: string;
+  agentsMcpMore: string;
+  agentsConnectTitle: string;
+  agentsStatusLabel: string;
+  agentsEndpoint: string;
+  agentsTransport: string;
+  agentsTransportValue: string;
+  agentsProtocol: string;
+  agentsBodyCap: string;
+  agentsRate: string;
+  /** "{count}" and "{seconds}" are replaced by numbers. */
+  agentsRateValue: string;
+  agentsMethods: string;
+  agentsLimitsNote: string;
+  agentsConnectConfig: string;
+  agentsConnectClaude: string;
+  agentsStatusChecking: string;
+  /** "{count}" is replaced by the number of tools the server lists. */
+  agentsStatusOk: string;
+  agentsStatusDown: string;
+  agentsTryTitle: string;
+  agentsTryLede: string;
+  agentsTryLabel: string;
+  agentsTryPlaceholder: string;
+  agentsTryButton: string;
+  agentsTryEmpty: string;
+  agentsTryError: string;
+  agentsTryRaw: string;
+  agentsToolsTitle: string;
+  /** "{count}" is replaced by the number of tools. */
+  agentsToolsLede: string;
+  agentsArguments: string;
+  agentsRequired: string;
+  agentsOptional: string;
+  agentsFilesTitle: string;
+  agentsFilesLede: string;
+  /** What each machine-readable file holds, keyed as MACHINE_FILES in site/build.ts. */
+  agentsFiles: Record<string, string>;
+  /** "{repo}" and "{upstream}" wrap the linked words. */
+  agentsSource: string;
+  /**
+   * The paragraph under the title of llms.txt. "{count}" and "{sections}" are
+   * numbers; "{full}", "{other}", "{index}", "{mcp}" and "{docs}" are addresses.
+   */
+  llmsIntro: string;
+
   notFoundTitle: string;
   notFoundDescription: string;
   notFoundLede: string;
@@ -365,6 +417,69 @@ export const STRINGS: Record<Lang, Strings> = {
       "ready-for-human": "Cần người làm",
       wontfix: "Không làm",
     },
+
+    agentsNav: "AI agent",
+    agentsTitle: "Dành cho AI agent",
+    agentsDescription:
+      "Cách để AI agent đọc {site}: máy chủ MCP và các tệp cho máy đọc.",
+    agentsLede:
+      "Toàn bộ từ điển có ở dạng dữ liệu. Agent có thể hỏi qua Model Context Protocol, hoặc đọc các tệp.",
+    agentsMcpTitle: "Máy chủ MCP",
+    agentsMcpLede:
+      "Máy chủ chỉ đọc và không cần đăng nhập. Mỗi yêu cầu là độc lập, máy chủ không giữ phiên.",
+    agentsMcpMore: "Cách kết nối và danh sách công cụ",
+    agentsConnectTitle: "Kết nối",
+    agentsStatusLabel: "Trạng thái",
+    agentsEndpoint: "Địa chỉ",
+    agentsTransport: "Cách truyền",
+    agentsTransportValue: "Streamable HTTP, không lưu trạng thái",
+    agentsProtocol: "Phiên bản MCP",
+    agentsBodyCap: "Thân yêu cầu tối đa",
+    agentsRate: "Giới hạn tần suất",
+    agentsRateValue: "{count} yêu cầu mỗi {seconds} giây, tính theo địa chỉ IP",
+    agentsMethods: "Phương thức HTTP",
+    agentsLimitsNote:
+      "Vượt giới hạn tần suất thì nhận 429 kèm Retry-After. Thân yêu cầu quá lớn thì nhận 413. Phương thức khác POST và OPTIONS thì nhận 405 kèm địa chỉ trang này.",
+    agentsConnectConfig: "Thêm vào cấu hình MCP của ứng dụng:",
+    agentsConnectClaude: "Hoặc với Claude Code:",
+    agentsStatusChecking: "Đang kiểm tra máy chủ…",
+    agentsStatusOk: "Máy chủ đang trả lời: {count} công cụ.",
+    agentsStatusDown: "Máy chủ MCP không trả lời ở địa chỉ này.",
+    agentsTryTitle: "Thử ngay",
+    agentsTryLede:
+      "Ô này gọi công cụ search của máy chủ, đúng như một agent sẽ gọi.",
+    agentsTryLabel: "Từ cần tìm",
+    agentsTryPlaceholder: "ví dụ: cửa sổ ngữ cảnh",
+    agentsTryButton: "Tìm",
+    agentsTryEmpty: "Không có thuật ngữ nào khớp.",
+    agentsTryError: "Máy chủ MCP không trả lời.",
+    agentsTryRaw: "Xem JSON máy chủ trả về",
+    agentsToolsTitle: "Công cụ",
+    agentsToolsLede:
+      "{count} công cụ, liệt kê từ chính danh sách mà máy chủ khai báo. Mô tả bằng tiếng Anh vì đó là nguyên văn agent nhận được.",
+    agentsArguments: "Tham số",
+    agentsRequired: "bắt buộc",
+    agentsOptional: "tuỳ chọn",
+    agentsFilesTitle: "Tệp cho máy đọc",
+    agentsFilesLede:
+      "Cùng nội dung đó ở dạng tệp tĩnh, cho agent không dùng MCP. Danh sách này lấy từ các tệp mà bản dựng vừa ghi ra.",
+    agentsFiles: {
+      llms: "Mỗi thuật ngữ một dòng, theo thứ tự giáo trình. Tiếng Việt.",
+      llms_en: "Như trên, tiếng Anh.",
+      llms_full:
+        "Toàn bộ nội dung của mọi thuật ngữ trong một tệp. Tiếng Việt.",
+      llms_full_en: "Như trên, tiếng Anh.",
+      index: "Danh sách mọi thuật ngữ với mô tả và địa chỉ, cả hai ngôn ngữ.",
+      term: "Một thuật ngữ: nội dung hai ngôn ngữ, các liên kết đi và đến.",
+      graph: "Các thuật ngữ và liên kết giữa chúng, để đi theo liên kết.",
+      corpus: "Toàn bộ dữ liệu trong một tệp. Máy chủ MCP trả lời từ tệp này.",
+      sitemap: "Mọi trang của website, ở cả hai ngôn ngữ.",
+      robots: "Quy tắc thu thập và địa chỉ sitemap.",
+    },
+    agentsSource:
+      "Mã nguồn và nội dung nằm ở {repo}kho của dự án{/repo}. Các mục tiếng Anh lấy từ {upstream}kho gốc{/upstream}.",
+    llmsIntro:
+      "{count} thuật ngữ trong {sections} phần, theo thứ tự giáo trình. Toàn bộ nội dung: {full}. English: {other}. JSON: {index}. MCP: {mcp} (hướng dẫn: {docs}).",
 
     notFoundTitle: "Không tìm thấy trang",
     notFoundDescription: "Trang này không tồn tại.",
@@ -559,6 +674,69 @@ export const STRINGS: Record<Lang, Strings> = {
       "ready-for-human": "Needs a person",
       wontfix: "Won't do",
     },
+
+    agentsNav: "AI agents",
+    agentsTitle: "For AI agents",
+    agentsDescription:
+      "How an AI agent can read the {site}: the MCP server and the machine-readable files.",
+    agentsLede:
+      "The whole dictionary is available as data. An agent can query it over the Model Context Protocol, or read it as files.",
+    agentsMcpTitle: "MCP server",
+    agentsMcpLede:
+      "The server only reads and needs no sign-in. Each request stands alone: the server keeps no session.",
+    agentsMcpMore: "How to connect, and the list of tools",
+    agentsConnectTitle: "Connect",
+    agentsStatusLabel: "Status",
+    agentsEndpoint: "Address",
+    agentsTransport: "Transport",
+    agentsTransportValue: "Streamable HTTP, stateless",
+    agentsProtocol: "MCP versions",
+    agentsBodyCap: "Largest request body",
+    agentsRate: "Rate limit",
+    agentsRateValue: "{count} requests per {seconds} seconds, per IP address",
+    agentsMethods: "HTTP methods",
+    agentsLimitsNote:
+      "A caller over the rate limit receives 429 with Retry-After. A body over the cap receives 413. Any method other than POST and OPTIONS receives 405 with the address of this page.",
+    agentsConnectConfig: "Add this to the MCP configuration of your client:",
+    agentsConnectClaude: "Or with Claude Code:",
+    agentsStatusChecking: "Checking the server…",
+    agentsStatusOk: "The server is answering: {count} tools.",
+    agentsStatusDown: "The MCP server does not answer at this address.",
+    agentsTryTitle: "Try it",
+    agentsTryLede:
+      "This box calls the server's search tool, the way an agent would.",
+    agentsTryLabel: "Words to look for",
+    agentsTryPlaceholder: "for example: context window",
+    agentsTryButton: "Search",
+    agentsTryEmpty: "No term matches.",
+    agentsTryError: "The MCP server did not answer.",
+    agentsTryRaw: "Show the JSON the server returned",
+    agentsToolsTitle: "Tools",
+    agentsToolsLede:
+      "{count} tools, listed from the registry the server itself declares.",
+    agentsArguments: "Arguments",
+    agentsRequired: "required",
+    agentsOptional: "optional",
+    agentsFilesTitle: "Machine-readable files",
+    agentsFilesLede:
+      "The same content as static files, for agents that do not use MCP. This list comes from the files the build has just written.",
+    agentsFiles: {
+      llms: "Every term on one line, in teaching order. Vietnamese.",
+      llms_en: "The same, in English.",
+      llms_full: "The full text of every term in one file. Vietnamese.",
+      llms_full_en: "The same, in English.",
+      index:
+        "Every term with its description and addresses, in both languages.",
+      term: "One term: its text in both languages, and its links in and out.",
+      graph: "The terms and the links between them, for following links.",
+      corpus: "All the data in one file. The MCP server answers from it.",
+      sitemap: "Every page of the site, in both languages.",
+      robots: "Crawl rules and the address of the sitemap.",
+    },
+    agentsSource:
+      "The code and the content are in {repo}the project's repository{/repo}. The English entries come from {upstream}the upstream repository{/upstream}.",
+    llmsIntro:
+      "{count} terms in {sections} sections, in teaching order. Full text: {full}. Tiếng Việt: {other}. JSON: {index}. MCP: {mcp} (how to connect: {docs}).",
 
     notFoundTitle: "Page not found",
     notFoundDescription: "This page does not exist.",
