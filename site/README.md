@@ -17,15 +17,15 @@
 | `site/learn-store.js`    | Keeps Learn progress in IndexedDB and syncs it, copied as written |
 | `site/sync.ts`           | Address and public key of the Supabase project used for sync |
 | `internal/adr/*.md`      | The decision records listed on `/tasks`           |
-| `site/tasks.js`          | Loads the GitHub issues on `/tasks` in the browser, copied as written |
+| `site/tasks.js`          | Loads the GitHub issues and pull requests on `/tasks` in the browser, copied as written |
 | `site/tasks.css`         | Styles of `/tasks`, loaded after `styles.css`     |
-| `api/mcp.ts`             | The MCP server. Its tool list is also printed on `/agents/mcp` |
+| `api/mcp.ts`             | The MCP server and the HTTP API. Its tool list is also printed on `/agents/mcp` |
 | `site/agents.js`         | Checks the MCP server and runs the search box on `/agents`, copied as written |
 | `site/agents.css`        | Styles of `/agents`, loaded after `styles.css`    |
 
 Every page is built from the markdown files, so editing an entry and
-rebuilding is the whole publishing step. The only server code is the MCP
-server in `api/mcp.ts`: see [For AI agents](#for-ai-agents). The only data
+rebuilding is the whole publishing step. The only server code is the function
+in `api/mcp.ts`: see [For AI agents](#for-ai-agents). The only data
 that is not in this repository is the Learn progress of visitors who sign in:
 see [Progress and sync](#progress-and-sync).
 
@@ -37,8 +37,8 @@ see [Progress and sync](#progress-and-sync).
 | `/learn`      | The course: one term at a time, step by step        |
 | `/curriculum` | Every term in teaching order, grouped by section    |
 | `/a-z`        | Every term in alphabetical order                    |
-| `/tasks`      | The project's open tasks and decision records       |
-| `/agents`     | The files for machines, and a link to the MCP guide |
+| `/tasks`      | The project's open tasks, pull requests and decision records |
+| `/agents`     | The MCP server, the HTTP API and the files for machines |
 | `/agents/mcp` | How to connect to the MCP server, and its tools     |
 | `/<slug>`     | One term, as a plain page that works without script |
 
@@ -155,20 +155,21 @@ of leaving the page.
 
 ## Tasks page
 
-`/tasks` shows the work of the project to the owner and to investors. It reads
-two things and stores nothing itself. See
-`internal/adr/0005-tasks-page-reads-github-issues-and-adrs.md`.
+`/tasks` shows the work of the project to the owner and to investors. It only
+reads, and stores nothing itself. See
+`internal/adr/0005-tasks-page-reads-github-issues-and-adrs.md` and
+`internal/adr/0008-tasks-page-stays-read-only.md`.
 
 | Shown on the page | Where it comes from                              | When it changes         |
 | ----------------- | ------------------------------------------------ | ----------------------- |
 | Tasks             | The GitHub issues of the repository in `REPO`    | When the page is opened |
+| Pull requests     | The same list, which also holds pull requests    | When the page is opened |
 | Decisions (ADR)   | The files in `internal/adr/`                     | At the next deploy      |
 
 `REPO` is a constant at the top of `site/build.ts`. The link in the footer of
 every page with a footer leads to `/tasks`.
 
 **Tasks.** The page asks the public GitHub API for the issues, without a token.
-Pull requests are left out.
 
 | Issue on GitHub                     | Status on the page |
 | ----------------------------------- | ------------------ |
@@ -186,6 +187,21 @@ link to the same list.
 To manage tasks, use GitHub: "Add task" opens the new issue form, and a task's
 name opens its issue. Issues must be switched on for the repository (Settings,
 General, Features).
+
+**Brief for an agent.** Every open task has a "Copy brief" button. It copies
+the issue's number, title, address, labels and text, followed by the working
+rules of this repository, as text to paste into an agent. The rules are
+`tasksBriefSteps` in `site/strings.ts`. The page cannot assign the issue or
+set a label: it holds no token.
+
+**Pull requests.** The page lists the open pull requests, the oldest first,
+and counts them in a number card. The five most recently merged are under
+"Merged recently". A pull request is reviewed and merged on GitHub. The branch
+names come from a second request, sent only while a pull request is open.
+
+"Merged branches not yet deleted" lists, when asked, the branches whose last
+commit a merged pull request already carried. The check costs two requests.
+Branches are deleted on GitHub.
 
 Without a token GitHub allows 60 requests per hour from one IP address. The
 page keeps a fetched list for two minutes in `sessionStorage`. The build also
@@ -275,9 +291,11 @@ on a 2D canvas with its own perspective projection.
 
 ## For AI agents
 
-The dictionary is also published as data, in two ways. Both come from the same
-build, and [ADR 0006](../internal/adr/0006-read-only-mcp-server-and-machine-readable-files.md)
-records the decision.
+The dictionary is also published as data: as files, and through one Vercel
+function that answers both MCP and plain HTTP. All of it comes from the same
+build. [ADR 0006](../internal/adr/0006-read-only-mcp-server-and-machine-readable-files.md)
+and [ADR 0007](../internal/adr/0007-plain-http-api-markdown-pages-and-discovery-files.md)
+record the decisions.
 
 ### Files
 
@@ -293,6 +311,17 @@ stops if a listed file was not written.
 | `/data/graph.json`                | The terms and the links between them              |
 | `/data/corpus.json`               | Everything in one file. The MCP server reads it   |
 | `/sitemap.xml`, `/robots.txt`     | Every page in both languages                      |
+| `/<slug>.md`, `/en/<slug>.md`     | One term as markdown, with its links              |
+| `/openapi.json`                   | The OpenAPI 3.1 description of the HTTP API       |
+| `/.well-known/mcp/server-card.json` | Where the MCP server is and what it can do      |
+| `/.well-known/agent-skills/index.json` | The agent skills the site publishes, with a digest of each |
+| `/.well-known/agent-skills/ai-coding-dictionary/SKILL.md` | When and how an agent should use the dictionary |
+
+`/llms.txt` starts with how an agent connects: the addresses, the tools and
+which tool to call first. The server card follows SEP-1649 of the MCP project
+and the skills index follows the Agent Skills Discovery RFC 0.2.0. Both are
+drafts. The digest in the skills index is the SHA-256 of the `SKILL.md` the
+build has just written.
 
 The files carry full addresses. They start with `SITE_URL` in `site/build.ts`,
 which the environment variable `SITE_URL` can replace. `/graph.json` at the
@@ -320,8 +349,27 @@ The rate limit is counted in memory by each running copy of the function, so
 it slows one noisy caller down. It is not a hard limit.
 
 To add or change a tool, edit the `TOOLS` array in `api/mcp.ts`. The server
-answers `tools/list` from that array and the build prints `/agents/mcp` from
-it, so the page follows on the next build. `LIMITS` works the same way.
+answers `tools/list` from that array and the build prints `/agents/mcp`,
+`/openapi.json`, the server card and the skill from it, so they follow on the
+next build. `LIMITS` works the same way. Each tool has an `example`: the build
+runs it and stops when it finds nothing.
+
+### HTTP API
+
+The same function answers plain HTTP, for a caller that does not speak MCP.
+`vercel.json` rewrites `/api/v1` and `/api/v1/<tool>` to it.
+
+| Request                          | Answer                                        |
+| -------------------------------- | --------------------------------------------- |
+| `GET /api/v1`                    | The tools, each with an example that works    |
+| `GET /api/v1/<tool>?name=value`  | The tool's answer, as JSON                    |
+| `POST /api/v1/<tool>` with JSON  | The same, with the parameters in the body     |
+
+The answer is the object MCP returns as `structuredContent`. In a GET a list
+is written with commas (`?slugs=context,harness`), and a parameter the tool
+does not have is ignored. A wrong parameter gets `400` with the tool's
+parameters, an unknown tool gets `404` with the tool names. The API shares the
+rate limit of the MCP server.
 
 On a preview deployment that Vercel protects with a sign-in, the function
 cannot fetch the corpus unless the project sets the environment variable
@@ -335,13 +383,16 @@ npm run preview
 ```
 
 `site/serve.ts` serves `dist/` at `http://localhost:3000` the way Vercel does:
-clean addresses, the 404 page, and the MCP server at `/api/mcp`. Restart it
-after a new build, because the MCP server keeps the corpus it read first.
+clean addresses, the 404 page, the MCP server at `/api/mcp` and the HTTP API
+at `/api/v1`. Restart it after a new build, because the server keeps the
+corpus it read first.
 
 ```sh
 curl -s http://localhost:3000/api/mcp \
   -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"context window"}}}'
+
+curl -s 'http://localhost:3000/api/v1/search?query=context+window'
 ```
 
 ## Deploy

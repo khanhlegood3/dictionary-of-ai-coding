@@ -173,6 +173,44 @@ export type Strings = {
   tasksAdrStatus: Record<AdrStatus, string>;
   /** Names shown for known issue labels. Other labels show as written. */
   tasksLabelNames: Record<string, string>;
+  /** The button on a task that copies a brief to paste into an agent. */
+  tasksBrief: string;
+  tasksBriefHint: string;
+  tasksBriefCopied: string;
+  /** The brief itself. "{n}", "{repo}", "{title}", "{url}", "{labels}". */
+  tasksBriefIntro: string;
+  tasksBriefTitle: string;
+  tasksBriefLink: string;
+  tasksBriefLabels: string;
+  tasksBriefBody: string;
+  tasksBriefNoBody: string;
+  tasksBriefCut: string;
+  tasksBriefStepsTitle: string;
+  /** "{n}" is replaced by the number of the issue. */
+  tasksBriefSteps: string[];
+  tasksPulls: string;
+  tasksPullsLede: string;
+  /** The label of the number card. */
+  tasksPullsWaiting: string;
+  tasksPullsEmpty: string;
+  tasksPullsReady: string;
+  tasksPullsDraft: string;
+  /** Between the two branches of a pull request: "from {into} to". */
+  tasksPullsInto: string;
+  /** "{count}" is replaced by a number. */
+  tasksPullsMerged: string;
+  tasksPullsAll: string;
+  tasksBranches: string;
+  tasksBranchesLede: string;
+  tasksBranchesCheck: string;
+  tasksBranchesChecking: string;
+  tasksBranchesNone: string;
+  /** "{n}" is replaced by the number of the pull request. */
+  tasksBranchesMergedBy: string;
+  /** "{count}" is replaced by a number. */
+  tasksBranchesOther: string;
+  tasksBranchesError: string;
+  tasksBranchesManage: string;
 
   agentsNav: string;
   agentsTitle: string;
@@ -216,15 +254,37 @@ export type Strings = {
   agentsOptional: string;
   agentsFilesTitle: string;
   agentsFilesLede: string;
+  agentsApiTitle: string;
+  agentsApiLede: string;
+  agentsApiExamples: string;
+  agentsApiSpec: string;
+  agentsApiNote: string;
   /** What each machine-readable file holds, keyed as MACHINE_FILES in site/build.ts. */
   agentsFiles: Record<string, string>;
   /** "{repo}" and "{upstream}" wrap the linked words. */
   agentsSource: string;
   /**
    * The paragraph under the title of llms.txt. "{count}" and "{sections}" are
-   * numbers; "{full}", "{other}", "{index}", "{mcp}" and "{docs}" are addresses.
+   * numbers; "{other}" is the address of the file in the other language.
    */
   llmsIntro: string;
+  /** The part of llms.txt that says how an agent connects. */
+  llmsConnectTitle: string;
+  /**
+   * One line per way in: the name of the link, then what it is. The keys are
+   * the ones llmsText() in site/build.ts gives an address to. "{example}" is
+   * replaced by an address that works.
+   */
+  llmsConnect: Record<string, [string, string]>;
+  llmsToolsTitle: string;
+  llmsStartTitle: string;
+  llmsStart: string[];
+  /** Labels of the lines under an entry in its markdown file. */
+  mdPage: string;
+  mdLearn: string;
+  mdMap: string;
+  mdData: string;
+  mdNote: string;
 
   notFoundTitle: string;
   notFoundDescription: string;
@@ -418,12 +478,51 @@ export const STRINGS: Record<Lang, Strings> = {
       wontfix: "Không làm",
     },
 
+    tasksBrief: "Chép đề bài",
+    tasksBriefHint: "Chép đề bài của task này để dán cho một agent",
+    tasksBriefCopied: "Đã chép",
+    tasksBriefIntro: "Hãy làm issue #{n} của kho {repo}.",
+    tasksBriefTitle: "Tiêu đề: {title}",
+    tasksBriefLink: "Liên kết: {url}",
+    tasksBriefLabels: "Nhãn: {labels}",
+    tasksBriefBody: "Nội dung issue:",
+    tasksBriefNoBody: "(Issue này không có nội dung. Chỉ có tiêu đề.)",
+    tasksBriefCut: "(Nội dung dài hơn. Đọc phần còn lại ở liên kết trên.)",
+    tasksBriefStepsTitle: "Cách làm:",
+    tasksBriefSteps: [
+      "Đọc CLAUDE.md và các ADR trong internal/adr/ trước khi sửa.",
+      'Làm trên một nhánh riêng, rồi mở pull request vào main. Ghi "Closes #{n}" trong mô tả pull request.',
+      'Trước khi mở pull request, chạy "npm run build", "npx tsc --noEmit -p site" và "npx prettier --check .".',
+      "Nếu issue thiếu thông tin để làm, hãy hỏi lại thay vì đoán.",
+    ],
+    tasksPulls: "Pull request",
+    tasksPullsLede:
+      "Các pull request đang mở của kho. Chọn một dòng để xem và merge trên GitHub.",
+    tasksPullsWaiting: "PR chờ merge",
+    tasksPullsEmpty: "Không có pull request nào đang mở.",
+    tasksPullsReady: "Chờ merge",
+    tasksPullsDraft: "Bản nháp",
+    tasksPullsInto: "vào",
+    tasksPullsMerged: "Đã merge gần đây ({count})",
+    tasksPullsAll: "Tất cả pull request",
+    tasksBranches: "Nhánh đã merge chưa xoá",
+    tasksBranchesLede:
+      "Nhánh đã merge hết vào main thì xoá được. Việc xoá làm trên GitHub.",
+    tasksBranchesCheck: "Kiểm tra",
+    tasksBranchesChecking: "Đang kiểm tra…",
+    tasksBranchesNone: "Không còn nhánh nào đã merge mà chưa xoá.",
+    tasksBranchesMergedBy: "đã merge qua #{n}",
+    tasksBranchesOther:
+      "{count} nhánh khác chưa merge hết, hoặc chưa có pull request.",
+    tasksBranchesError: "Không tải được danh sách nhánh từ GitHub.",
+    tasksBranchesManage: "Quản lý nhánh trên GitHub",
+
     agentsNav: "AI agent",
     agentsTitle: "Dành cho AI agent",
     agentsDescription:
-      "Cách để AI agent đọc {site}: máy chủ MCP và các tệp cho máy đọc.",
+      "Cách để AI agent đọc {site}: máy chủ MCP, HTTP API và các tệp cho máy đọc.",
     agentsLede:
-      "Toàn bộ từ điển có ở dạng dữ liệu. Agent có thể hỏi qua Model Context Protocol, hoặc đọc các tệp.",
+      "Toàn bộ từ điển có ở dạng dữ liệu. Agent có thể hỏi qua Model Context Protocol, gọi HTTP API, hoặc đọc các tệp.",
     agentsMcpTitle: "Máy chủ MCP",
     agentsMcpLede:
       "Máy chủ chỉ đọc và không cần đăng nhập. Mỗi yêu cầu là độc lập, máy chủ không giữ phiên.",
@@ -463,6 +562,13 @@ export const STRINGS: Record<Lang, Strings> = {
     agentsFilesTitle: "Tệp cho máy đọc",
     agentsFilesLede:
       "Cùng nội dung đó ở dạng tệp tĩnh, cho agent không dùng MCP. Danh sách này lấy từ các tệp mà bản dựng vừa ghi ra.",
+    agentsApiTitle: "HTTP API",
+    agentsApiLede:
+      "Cùng các công cụ của máy chủ MCP, gọi bằng GET hoặc POST thông thường. Dành cho agent không nói MCP. Kết quả là JSON.",
+    agentsApiExamples: "Mỗi công cụ một địa chỉ. Các ví dụ dưới đây chạy được:",
+    agentsApiSpec: "Mô tả OpenAPI",
+    agentsApiNote:
+      "Với GET, tham số nằm trong địa chỉ; danh sách thì viết các giá trị cách nhau bằng dấu phẩy. Với POST, gửi một đối tượng JSON chứa các tham số đó. API dùng chung giới hạn tần suất với máy chủ MCP.",
     agentsFiles: {
       llms: "Mỗi thuật ngữ một dòng, theo thứ tự giáo trình. Tiếng Việt.",
       llms_en: "Như trên, tiếng Anh.",
@@ -475,11 +581,60 @@ export const STRINGS: Record<Lang, Strings> = {
       corpus: "Toàn bộ dữ liệu trong một tệp. Máy chủ MCP trả lời từ tệp này.",
       sitemap: "Mọi trang của website, ở cả hai ngôn ngữ.",
       robots: "Quy tắc thu thập và địa chỉ sitemap.",
+      markdown:
+        "Một thuật ngữ ở dạng markdown: thêm .md vào địa chỉ trang. Tiếng Việt.",
+      markdown_en: "Như trên, tiếng Anh.",
+      openapi: "Mô tả OpenAPI 3.1 của HTTP API.",
+      server_card:
+        "Thẻ máy chủ MCP: địa chỉ, cách truyền và khả năng, để ứng dụng tự tìm ra máy chủ.",
+      skills: "Danh sách agent skill mà website công bố.",
+      skill:
+        "Agent skill: hướng dẫn agent khi nào và cách nào dùng từ điển này.",
     },
     agentsSource:
       "Mã nguồn và nội dung nằm ở {repo}kho của dự án{/repo}. Các mục tiếng Anh lấy từ {upstream}kho gốc{/upstream}.",
     llmsIntro:
-      "{count} thuật ngữ trong {sections} phần, theo thứ tự giáo trình. Toàn bộ nội dung: {full}. English: {other}. JSON: {index}. MCP: {mcp} (hướng dẫn: {docs}).",
+      "{count} thuật ngữ về lập trình với AI, trong {sections} phần, theo thứ tự giáo trình. Mỗi thuật ngữ có bản tiếng Việt và tiếng Anh. English: {other}.",
+    llmsConnectTitle: "Kết nối agent (chỉ đọc, không cần đăng nhập)",
+    llmsConnect: {
+      mcp: [
+        "Máy chủ MCP",
+        "Streamable HTTP, không lưu trạng thái. Thêm địa chỉ này làm máy chủ MCP từ xa.",
+      ],
+      api: [
+        "HTTP API",
+        "Cùng các công cụ đó qua GET hoặc POST, trả JSON. Ví dụ: {example}",
+      ],
+      openapi: ["OpenAPI 3.1", "Mô tả của HTTP API."],
+      markdown: [
+        "Markdown của một thuật ngữ",
+        "Thêm .md vào địa chỉ trang của thuật ngữ bất kỳ.",
+      ],
+      full: ["Toàn bộ nội dung", "Mọi thuật ngữ trong một tệp. Tệp lớn."],
+      index: ["Dữ liệu JSON", "Danh sách mọi thuật ngữ, cả hai ngôn ngữ."],
+      skills: [
+        "Agent skill",
+        "Hướng dẫn khi nào và cách nào dùng các công cụ này.",
+      ],
+      card: ["Thẻ máy chủ MCP", "Để ứng dụng tự tìm ra máy chủ."],
+      guide: ["Hướng dẫn kết nối", "Trang cho người đọc."],
+    },
+    llmsToolsTitle: "Công cụ",
+    llmsStartTitle: "Bắt đầu từ đâu",
+    llmsStart: [
+      "Có câu hỏi hoặc từ khoá mà chưa có slug: gọi search, rồi get_term với slug trong kết quả.",
+      "Đã có tên thuật ngữ: gọi get_term. Tên tiếng Anh, tên tiếng Việt hay slug đều được.",
+      'Câu hỏi dạng "X khác Y thế nào": gọi compare.',
+      "Muốn mở rộng câu trả lời: gọi get_related để đi theo liên kết từ một thuật ngữ.",
+      'Tìm kiếm khớp theo từ, không theo nghĩa. Nếu kết quả không dùng được, tìm lại bằng danh từ chính. Truyền lang là "vi" hoặc "en".',
+      "Ghi url của mỗi thuật ngữ đã dùng. Khi người dùng muốn học một thuật ngữ, đưa learn_url; muốn xem nó nối với gì, đưa map_url.",
+    ],
+    mdPage: "Trang",
+    mdLearn: "Học từng bước",
+    mdMap: "Trên bản đồ",
+    mdData: "JSON",
+    mdNote:
+      "Trang nào của thuật ngữ cũng có bản markdown: thêm .md vào địa chỉ.",
 
     notFoundTitle: "Không tìm thấy trang",
     notFoundDescription: "Trang này không tồn tại.",
@@ -675,12 +830,51 @@ export const STRINGS: Record<Lang, Strings> = {
       wontfix: "Won't do",
     },
 
+    tasksBrief: "Copy brief",
+    tasksBriefHint: "Copy a brief of this task to paste into an agent",
+    tasksBriefCopied: "Copied",
+    tasksBriefIntro: "Work on issue #{n} of the repository {repo}.",
+    tasksBriefTitle: "Title: {title}",
+    tasksBriefLink: "Link: {url}",
+    tasksBriefLabels: "Labels: {labels}",
+    tasksBriefBody: "The issue says:",
+    tasksBriefNoBody: "(This issue has no text. It has only a title.)",
+    tasksBriefCut: "(The text goes on. Read the rest at the link above.)",
+    tasksBriefStepsTitle: "How to work:",
+    tasksBriefSteps: [
+      "Read CLAUDE.md and the ADRs in internal/adr/ before you change anything.",
+      'Work on a branch of its own, then open a pull request into main. Write "Closes #{n}" in the description of the pull request.',
+      'Before you open the pull request, run "npm run build", "npx tsc --noEmit -p site" and "npx prettier --check .".',
+      "If the issue does not say enough to do the work, ask instead of guessing.",
+    ],
+    tasksPulls: "Pull requests",
+    tasksPullsLede:
+      "The open pull requests of the repository. Select one to review and merge it on GitHub.",
+    tasksPullsWaiting: "PRs to merge",
+    tasksPullsEmpty: "No open pull requests.",
+    tasksPullsReady: "Ready to merge",
+    tasksPullsDraft: "Draft",
+    tasksPullsInto: "into",
+    tasksPullsMerged: "Merged recently ({count})",
+    tasksPullsAll: "All pull requests",
+    tasksBranches: "Merged branches not yet deleted",
+    tasksBranchesLede:
+      "A branch that is fully merged into main can be deleted. Deleting is done on GitHub.",
+    tasksBranchesCheck: "Check",
+    tasksBranchesChecking: "Checking…",
+    tasksBranchesNone: "No merged branch is left to delete.",
+    tasksBranchesMergedBy: "merged by #{n}",
+    tasksBranchesOther:
+      "{count} other branches are not fully merged, or have no pull request.",
+    tasksBranchesError: "Could not load the branch list from GitHub.",
+    tasksBranchesManage: "Manage branches on GitHub",
+
     agentsNav: "AI agents",
     agentsTitle: "For AI agents",
     agentsDescription:
-      "How an AI agent can read the {site}: the MCP server and the machine-readable files.",
+      "How an AI agent can read the {site}: the MCP server, the HTTP API and the machine-readable files.",
     agentsLede:
-      "The whole dictionary is available as data. An agent can query it over the Model Context Protocol, or read it as files.",
+      "The whole dictionary is available as data. An agent can query it over the Model Context Protocol, call the HTTP API, or read it as files.",
     agentsMcpTitle: "MCP server",
     agentsMcpLede:
       "The server only reads and needs no sign-in. Each request stands alone: the server keeps no session.",
@@ -720,6 +914,13 @@ export const STRINGS: Record<Lang, Strings> = {
     agentsFilesTitle: "Machine-readable files",
     agentsFilesLede:
       "The same content as static files, for agents that do not use MCP. This list comes from the files the build has just written.",
+    agentsApiTitle: "HTTP API",
+    agentsApiLede:
+      "The tools of the MCP server again, called with a plain GET or POST. For an agent that does not speak MCP. The answer is JSON.",
+    agentsApiExamples: "Each tool has an address. These examples work:",
+    agentsApiSpec: "OpenAPI description",
+    agentsApiNote:
+      "In a GET the parameters go in the address; write a list as values with commas between them. In a POST, send a JSON object of the same parameters. The API shares the rate limit of the MCP server.",
     agentsFiles: {
       llms: "Every term on one line, in teaching order. Vietnamese.",
       llms_en: "The same, in English.",
@@ -732,11 +933,56 @@ export const STRINGS: Record<Lang, Strings> = {
       corpus: "All the data in one file. The MCP server answers from it.",
       sitemap: "Every page of the site, in both languages.",
       robots: "Crawl rules and the address of the sitemap.",
+      markdown:
+        "One term as markdown: add .md to the address of its page. Vietnamese.",
+      markdown_en: "The same, in English.",
+      openapi: "The OpenAPI 3.1 description of the HTTP API.",
+      server_card:
+        "The MCP server card: address, transport and capabilities, so a client can find the server by itself.",
+      skills: "The list of agent skills this site publishes.",
+      skill:
+        "The agent skill: tells an agent when and how to use this dictionary.",
     },
     agentsSource:
       "The code and the content are in {repo}the project's repository{/repo}. The English entries come from {upstream}the upstream repository{/upstream}.",
     llmsIntro:
-      "{count} terms in {sections} sections, in teaching order. Full text: {full}. Tiếng Việt: {other}. JSON: {index}. MCP: {mcp} (how to connect: {docs}).",
+      "{count} terms of coding with AI, in {sections} sections, in teaching order. Every term has an English and a Vietnamese text. Tiếng Việt: {other}.",
+    llmsConnectTitle: "Connect an agent (read-only, no sign-in)",
+    llmsConnect: {
+      mcp: [
+        "MCP server",
+        "Streamable HTTP, stateless. Add this address as a remote MCP server.",
+      ],
+      api: [
+        "HTTP API",
+        "The same tools over GET or POST, answering JSON. Example: {example}",
+      ],
+      openapi: ["OpenAPI 3.1", "The description of the HTTP API."],
+      markdown: [
+        "Markdown of one term",
+        "Add .md to the address of any term's page.",
+      ],
+      full: ["Full text", "Every term in one file. The file is large."],
+      index: ["JSON data", "The list of every term, in both languages."],
+      skills: ["Agent skill", "Says when and how to use these tools."],
+      card: ["MCP server card", "Lets a client find the server by itself."],
+      guide: ["How to connect", "The page for people."],
+    },
+    llmsToolsTitle: "Tools",
+    llmsStartTitle: "Start here",
+    llmsStart: [
+      "A question or keywords, and no slug: call search, then get_term with a slug from the results.",
+      "The name of a term: call get_term. The English term, its Vietnamese name and its slug all work.",
+      'A question of the form "how does X differ from Y": call compare.',
+      "To widen an answer: call get_related to follow the links from a term.",
+      'Search matches words, not meaning. If the results are no use, search again with the key noun. Pass lang as "vi" or "en".',
+      "Cite the url of each term you use. When the user wants to study a term, give learn_url; to see what it connects to, give map_url.",
+    ],
+    mdPage: "Page",
+    mdLearn: "Learn step by step",
+    mdMap: "On the map",
+    mdData: "JSON",
+    mdNote: "Every term page has a markdown copy: add .md to its address.",
 
     notFoundTitle: "Page not found",
     notFoundDescription: "This page does not exist.",

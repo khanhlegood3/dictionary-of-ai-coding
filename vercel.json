@@ -15,11 +15,37 @@
     {
       "source": "/status.json",
       "destination": "/api/mcp?status=1"
+    },
+    {
+      "source": "/api/v1",
+      "destination": "/api/mcp?api=index"
+    },
+    {
+      "source": "/api/v1/:tool",
+      "destination": "/api/mcp?api=:tool"
     }
   ],
   "headers": [
     {
       "source": "/data/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/openapi.json",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",

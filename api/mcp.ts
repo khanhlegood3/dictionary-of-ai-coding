@@ -2,6 +2,9 @@
 // Vercel serves this file at /api/mcp, and vercel.json maps /status.json to it.
 // (The address /mcp is taken: it is the page of the term "MCP".)
 //
+// The same tools also answer plain HTTP at /api/v1/<tool>, for a caller that
+// does not speak MCP. vercel.json maps those addresses to this file as well.
+//
 // The file imports nothing, on purpose. Vercel compiles it on its own, the
 // site build reads TOOLS and LIMITS from it to write the /agents page, and
 // site/serve.ts runs it locally. One file with no imports behaves the same in
@@ -15,7 +18,7 @@
 export const SERVER = {
   name: "ai-coding-dictionary",
   title: "AI Coding Dictionary",
-  version: "1.0.0",
+  version: "1.1.0",
 };
 
 /** Newest first. A client that asks for another version is offered the first. */
@@ -35,10 +38,15 @@ export const LIMITS = {
   textLength: 200,
 };
 
+export const MCP_PATH = "/api/mcp";
 export const CORPUS_PATH = "/data/corpus.json";
 export const DOCS_PATH = "/agents/mcp";
 /** A GET here says whether the server can read the corpus. */
 export const STATUS_PATH = "/status.json";
+/** The tools again, over plain HTTP: GET or POST /api/v1/<tool>. */
+export const API_PATH = "/api/v1";
+/** The description of that API, written by the site build. */
+export const OPENAPI_PATH = "/openapi.json";
 
 // ------------------------------------------------------------------- data
 
@@ -327,6 +335,16 @@ function address(corpus: Corpus, lang: Lang, slug: string): string {
   return `${corpus.site}${corpus.base[lang] ?? ""}/${slug}`;
 }
 
+/** The term opened in the Learn view, which teaches it step by step. */
+function learnAddress(corpus: Corpus, lang: Lang, slug: string): string {
+  return `${corpus.site}${corpus.base[lang] ?? ""}/learn#/${slug}`;
+}
+
+/** The term selected on the map of all terms. */
+function mapAddress(corpus: Corpus, lang: Lang, slug: string): string {
+  return `${corpus.site}${corpus.base[lang] || "/"}?term=${slug}`;
+}
+
 function sectionOf(corpus: Corpus, lang: Lang, number: number) {
   const section = corpus.sections.find((s) => s.number === number);
   return { number, title: section?.title[lang] ?? "" };
@@ -388,6 +406,11 @@ export type Tool = {
   description: string;
   inputSchema: JsonSchema;
   outputSchema: JsonSchema;
+  /**
+   * Arguments of a call that finds something. The pages and the OpenAPI file
+   * show it, and the site build runs it, so it cannot go stale.
+   */
+  example: Arguments;
   run: (index: Index, args: Arguments) => Record<string, unknown>;
 };
 
@@ -462,6 +485,18 @@ export const TOOLS: Tool[] = [
           },
         },
         files: { type: "object", additionalProperties: { type: "string" } },
+        pages: {
+          type: "object",
+          description:
+            "Pages for a person: the map of all terms, the step-by-step course, the curriculum and the A to Z list.",
+          properties: {
+            map: { type: "string" },
+            learn: { type: "string" },
+            curriculum: { type: "string" },
+            a_z: { type: "string" },
+          },
+          required: ["map", "learn", "curriculum", "a_z"],
+        },
         repository: { type: "string" },
         upstream: { type: "string" },
       },
@@ -475,10 +510,12 @@ export const TOOLS: Tool[] = [
         "term_count",
         "sections",
         "files",
+        "pages",
         "repository",
         "upstream",
       ],
     },
+    example: {},
     run(index, args) {
       const lang = langOf(index, args);
       const { corpus } = index;
@@ -505,6 +542,12 @@ export const TOOLS: Tool[] = [
           };
         }),
         files,
+        pages: {
+          map: corpus.site + (corpus.base[lang] || "/"),
+          learn: `${corpus.site}${corpus.base[lang] ?? ""}/learn`,
+          curriculum: `${corpus.site}${corpus.base[lang] ?? ""}/curriculum`,
+          a_z: `${corpus.site}${corpus.base[lang] ?? ""}/a-z`,
+        },
         repository: corpus.repository,
         upstream: corpus.upstream,
       };
@@ -573,6 +616,7 @@ export const TOOLS: Tool[] = [
       },
       required: ["query", "lang", "total", "results"],
     },
+    example: { query: "context window" },
     run(index, args) {
       const lang = langOf(index, args);
       const query = textOf(args, "query");
@@ -606,7 +650,7 @@ export const TOOLS: Tool[] = [
     name: "get_term",
     title: "Read one term",
     description:
-      'The full entry of one term: its description, the body and the usage dialogue as markdown, its section, the terms it links to and the terms that link to it. Pass a slug such as "context-window"; the English term or its Vietnamese name also works. An unknown slug is not a dead end: found is false and suggestions names the nearest terms to retry with. Use this once search, get_section or get_related has given you a slug.',
+      'The full entry of one term: its description, the body and the usage dialogue as markdown, its section, the terms it links to and the terms that link to it, and the addresses of the term in the Learn view and on the map. Pass a slug such as "context-window"; the English term or its Vietnamese name also works. An unknown slug is not a dead end: found is false and suggestions names the nearest terms to retry with. Use this once search, get_section or get_related has given you a slug.',
     inputSchema: {
       type: "object",
       properties: {
@@ -653,6 +697,20 @@ export const TOOLS: Tool[] = [
               type: "string",
               description: "The same entry as a JSON file, in every language.",
             },
+            markdown_url: {
+              type: "string",
+              description: "The same entry as a markdown file.",
+            },
+            learn_url: {
+              type: "string",
+              description:
+                "The term in the Learn view, which teaches it step by step. Offer it when the user wants to study the term.",
+            },
+            map_url: {
+              type: "string",
+              description:
+                "The term on the map of all terms, with its links drawn. Offer it when the user wants to see what it connects to.",
+            },
           },
           required: [
             "slug",
@@ -668,12 +726,16 @@ export const TOOLS: Tool[] = [
             "links_to",
             "linked_from",
             "data_url",
+            "markdown_url",
+            "learn_url",
+            "map_url",
           ],
         },
         suggestions: SUGGESTIONS_SCHEMA,
       },
       required: ["found", "query"],
     },
+    example: { slug: "context-window" },
     run(index, args) {
       const lang = langOf(index, args);
       const query = textOf(args, "slug");
@@ -697,6 +759,9 @@ export const TOOLS: Tool[] = [
             index.linkedFrom.get(term.slug) ?? []
           ),
           data_url: `${index.corpus.site}/data/terms/${term.slug}.json`,
+          markdown_url: `${address(index.corpus, lang, term.slug)}.md`,
+          learn_url: learnAddress(index.corpus, lang, term.slug),
+          map_url: mapAddress(index.corpus, lang, term.slug),
         },
       };
     },
@@ -732,6 +797,7 @@ export const TOOLS: Tool[] = [
       },
       required: ["found"],
     },
+    example: { section: 2 },
     run(index, args) {
       const lang = langOf(index, args);
       const number = args.section;
@@ -783,6 +849,7 @@ export const TOOLS: Tool[] = [
       },
       required: ["found", "query"],
     },
+    example: { slug: "context-window" },
     run(index, args) {
       const lang = langOf(index, args);
       const query = textOf(args, "slug");
@@ -886,6 +953,7 @@ export const TOOLS: Tool[] = [
         "shared_links",
       ],
     },
+    example: { slugs: ["context", "context-window"] },
     run(index, args) {
       const lang = langOf(index, args);
       const given = args.slugs;
@@ -940,13 +1008,14 @@ export const TOOLS: Tool[] = [
   },
 ];
 
-const INSTRUCTIONS =
+export const INSTRUCTIONS =
   "A dictionary of AI coding terms, in Vietnamese and English. Every tool only reads. " +
   "Call get_overview to see what it covers, search when you have words and no slug, " +
   "get_term for one full entry, get_related to walk the links from a term, " +
   "get_section to browse a part of the curriculum, and compare for two to six terms side by side. " +
   'Pass lang "vi" or "en" to choose the language of the answer; the default is "vi". ' +
-  "Cite the url of each term you use.";
+  "Cite the url of each term you use. get_term also returns learn_url and map_url: " +
+  "offer them when the user wants to study a term or see what it connects to.";
 
 // ------------------------------------------------------------------ corpus
 
@@ -1192,7 +1261,7 @@ async function answer(
 
 const CORS: Record<string, string> = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers":
     "content-type, accept, authorization, mcp-protocol-version, mcp-session-id, last-event-id",
   "access-control-expose-headers":
@@ -1247,6 +1316,9 @@ async function status(
       requests: LIMITS.requests,
       window_seconds: LIMITS.windowSeconds,
     },
+    mcp: MCP_PATH,
+    api: API_PATH,
+    openapi: OPENAPI_PATH,
     docs,
   };
   try {
@@ -1269,6 +1341,244 @@ async function status(
   }
 }
 
+// --------------------------------------------------------------- plain HTTP
+
+/**
+ * Which part of the plain HTTP API a request is for: "" for the list of
+ * tools, the name of a tool, or null when the request is not for that API.
+ *
+ * vercel.json sends /api/v1/<tool> to this file as ?api=<tool>. A rewrite may
+ * show the function either address, so both are read.
+ */
+function apiTarget(request: Request): string | null {
+  const address = new URL(request.url, "http://localhost");
+  const inPath = /\/api\/v1(?:\/([^/]*))?\/?$/.exec(address.pathname);
+  const name = inPath ? (inPath[1] ?? "") : address.searchParams.get("api");
+  if (name === null) return null;
+  return name === "index" ? "" : name;
+}
+
+/** The address that runs a tool's example over plain HTTP. */
+export function exampleAddress(tool: Tool): string {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(tool.example))
+    query.set(name, Array.isArray(value) ? value.join(",") : String(value));
+  const text = query.toString().replace(/%2C/g, ",");
+  return `${API_PATH}/${tool.name}${text ? `?${text}` : ""}`;
+}
+
+/** The arguments of a tool, read from the query of a GET. */
+function argumentsFromQuery(tool: Tool, query: URLSearchParams): Arguments {
+  const properties = (tool.inputSchema.properties ?? {}) as Record<
+    string,
+    JsonSchema
+  >;
+  const args: Arguments = {};
+  for (const [name, schema] of Object.entries(properties)) {
+    const given = query.getAll(name);
+    const first = given[0];
+    if (first === undefined) continue;
+    if (schema.type === "array")
+      // "a,b" and "?slugs=a&slugs=b" both give two items.
+      args[name] = given
+        .flatMap((value) => value.split(","))
+        .map((value) => value.trim())
+        .filter(Boolean);
+    // Text that is not a number is passed on, and the tool says what is wrong.
+    else if (schema.type === "integer")
+      args[name] = /^-?\d+$/.test(first.trim()) ? Number(first) : first;
+    else args[name] = first;
+  }
+  return args;
+}
+
+/** GET /api/v1: what the API offers, for a caller that found only this. */
+function apiIndex(origin: string) {
+  return {
+    name: SERVER.name,
+    title: SERVER.title,
+    version: SERVER.version,
+    description:
+      "A dictionary of AI coding terms, in Vietnamese and English. Every tool only reads, and no sign-in is needed.",
+    usage:
+      "GET {url}?parameter=value, or POST a JSON object of the same parameters. In a GET, write a list as values with commas between them. Parameters a tool does not have are ignored.",
+    openapi: origin + OPENAPI_PATH,
+    mcp: origin + MCP_PATH,
+    docs: origin + DOCS_PATH,
+    limits: {
+      body_bytes: LIMITS.bodyBytes,
+      requests: LIMITS.requests,
+      window_seconds: LIMITS.windowSeconds,
+    },
+    tools: TOOLS.map((tool) => ({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      url: `${origin}${API_PATH}/${tool.name}`,
+      example: origin + exampleAddress(tool),
+      parameters: tool.inputSchema,
+    })),
+  };
+}
+
+/**
+ * Answer a request to the plain HTTP API. A tool's answer is the same object
+ * that MCP returns as structuredContent.
+ */
+async function handleApi(
+  request: Request,
+  load: Loader,
+  target: string
+): Promise<Response> {
+  let origin = "";
+  try {
+    origin = originOf(request);
+  } catch {
+    // The paths alone still say where to look.
+  }
+  const docs = origin + DOCS_PATH;
+  const problem = (
+    status: number,
+    code: string,
+    message: string,
+    more: Record<string, unknown> = {},
+    headers: Record<string, string> = {}
+  ) => reply(status, { error: { code, message }, ...more, docs }, headers);
+
+  const reading = request.method === "GET" || request.method === "HEAD";
+  if (!reading && request.method !== "POST")
+    return problem(
+      405,
+      "method_not_allowed",
+      "This API answers GET and POST requests.",
+      {},
+      { allow: "GET, POST, OPTIONS" }
+    );
+
+  const count = countCall(request, Date.now());
+  const rate = {
+    "ratelimit-limit": String(LIMITS.requests),
+    "ratelimit-remaining": String(count.remaining),
+    "ratelimit-reset": String(count.resetIn),
+  };
+  if (!count.allowed)
+    return problem(
+      429,
+      "too_many_requests",
+      `Too many requests: at most ${LIMITS.requests} per ${LIMITS.windowSeconds} seconds. Retry in ${count.resetIn} seconds.`,
+      {},
+      { ...rate, "retry-after": String(count.resetIn) }
+    );
+
+  if (target === "") {
+    if (!reading)
+      return problem(
+        405,
+        "method_not_allowed",
+        `POST to the address of a tool, such as ${API_PATH}/${TOOLS[0]?.name}.`,
+        {},
+        { ...rate, allow: "GET, OPTIONS" }
+      );
+    return reply(200, apiIndex(origin), rate);
+  }
+
+  const tool = TOOLS.find((t) => t.name === target);
+  if (!tool)
+    return problem(
+      404,
+      "unknown_tool",
+      `There is no tool named "${target.slice(0, 80)}".`,
+      { tools: TOOLS.map((t) => t.name) },
+      rate
+    );
+
+  let args: Arguments;
+  if (reading) {
+    args = argumentsFromQuery(
+      tool,
+      new URL(request.url, "http://localhost").searchParams
+    );
+  } else {
+    const tooLarge = () =>
+      problem(
+        413,
+        "body_too_large",
+        `The request body is larger than ${LIMITS.bodyBytes} bytes.`,
+        {},
+        rate
+      );
+    if (Number(request.headers.get("content-length") ?? 0) > LIMITS.bodyBytes)
+      return tooLarge();
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > LIMITS.bodyBytes)
+      return tooLarge();
+    let body: unknown = {};
+    if (text.trim()) {
+      if (
+        !(request.headers.get("content-type") ?? "").includes(
+          "application/json"
+        )
+      )
+        return problem(
+          415,
+          "unsupported_media_type",
+          "Send the request as application/json.",
+          {},
+          rate
+        );
+      try {
+        body = JSON.parse(text);
+      } catch {
+        return problem(
+          400,
+          "invalid_json",
+          "The body is not valid JSON.",
+          {},
+          rate
+        );
+      }
+    }
+    if (!isObject(body))
+      return problem(
+        400,
+        "invalid_arguments",
+        "The body must be a JSON object of the tool's parameters.",
+        { parameters: tool.inputSchema },
+        rate
+      );
+    args = body;
+  }
+
+  let index: Index;
+  try {
+    index = await loadIndex(request, load);
+  } catch (error) {
+    return problem(
+      503,
+      "data_unavailable",
+      "The dictionary data could not be loaded. Try again shortly.",
+      { reason: error instanceof Error ? error.message : String(error) },
+      rate
+    );
+  }
+  try {
+    return reply(200, tool.run(index, args), rate);
+  } catch (error) {
+    if (error instanceof InputError)
+      return problem(
+        400,
+        "invalid_arguments",
+        error.message,
+        {
+          parameters: tool.inputSchema,
+          example: origin + exampleAddress(tool),
+        },
+        rate
+      );
+    return problem(500, "tool_failed", "The tool failed.", {}, rate);
+  }
+}
+
 /**
  * Answer one HTTP request to the MCP endpoint.
  *
@@ -1280,6 +1590,9 @@ export async function handleMcp(
   load: Loader = corpusFromSite
 ): Promise<Response> {
   if (request.method === "OPTIONS") return reply(204, null);
+
+  const target = apiTarget(request);
+  if (target !== null) return handleApi(request, load, target);
 
   let docs = DOCS_PATH;
   try {
