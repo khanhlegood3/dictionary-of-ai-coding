@@ -5,6 +5,7 @@
   "scripts": {
     "generate": "tsx internal/generate-readme.ts",
     "build": "tsx site/build.ts",
+    "preview": "tsx site/serve.ts",
     "prepare": "husky"
   },
   "devDependencies": {
