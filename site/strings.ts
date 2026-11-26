@@ -490,9 +490,8 @@ export const STRINGS: Record<Lang, Strings> = {
     tasksBriefCut: "(Nội dung dài hơn. Đọc phần còn lại ở liên kết trên.)",
     tasksBriefStepsTitle: "Cách làm:",
     tasksBriefSteps: [
-      "Đọc CLAUDE.md và các ADR trong internal/adr/ trước khi sửa.",
+      "Đọc AGENTS.md ở gốc kho trước khi sửa. Tệp đó ghi quy tắc của kho và các lệnh kiểm tra phải chạy.",
       'Làm trên một nhánh riêng, rồi mở pull request vào main. Ghi "Closes #{n}" trong mô tả pull request.',
-      'Trước khi mở pull request, chạy "npm run build", "npx tsc --noEmit -p site" và "npx prettier --check .".',
       "Nếu issue thiếu thông tin để làm, hãy hỏi lại thay vì đoán.",
     ],
     tasksPulls: "Pull request",
@@ -842,9 +841,8 @@ export const STRINGS: Record<Lang, Strings> = {
     tasksBriefCut: "(The text goes on. Read the rest at the link above.)",
     tasksBriefStepsTitle: "How to work:",
     tasksBriefSteps: [
-      "Read CLAUDE.md and the ADRs in internal/adr/ before you change anything.",
+      "Read AGENTS.md at the repository root before you change anything. It has the rules of the repository and the checks to run.",
       'Work on a branch of its own, then open a pull request into main. Write "Closes #{n}" in the description of the pull request.',
-      'Before you open the pull request, run "npm run build", "npx tsc --noEmit -p site" and "npx prettier --check .".',
       "If the issue does not say enough to do the work, ask instead of guessing.",
     ],
     tasksPulls: "Pull requests",

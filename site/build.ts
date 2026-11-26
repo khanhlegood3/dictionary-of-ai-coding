@@ -69,14 +69,13 @@ const REPO_URL = `https://github.com/${REPO}`;
 
 /** Where the English entries come from. */
 const UPSTREAM_URL = "https://github.com/mattpocock/dictionary-of-ai-coding";
+/** The address of the site in production. server.json names it. */
+const PUBLIC_URL = "https://ai9k.vercel.app";
 /**
  * The public address of the site, without a slash at the end. The files for
  * machines carry full addresses, so the build has to know it.
  */
-const SITE_URL = (process.env.SITE_URL || "https://ai9k.vercel.app").replace(
-  /\/+$/,
-  ""
-);
+const SITE_URL = (process.env.SITE_URL || PUBLIC_URL).replace(/\/+$/, "");
 /** Where an MCP client looks for the server by itself (SEP-1649, a draft). */
 const SERVER_CARD_PATH = "/.well-known/mcp/server-card.json";
 /** The list of agent skills the site publishes (Agent Skills Discovery 0.2.0). */
@@ -172,6 +171,14 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * A block of schema.org data for the head of a page. "<" is written as an
+ * escape, so no text of an entry can end the script element.
+ */
+function jsonLd(data: Json): string {
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
 }
 
 // Same rule as the README generator, so a term has one slug everywhere.
@@ -807,6 +814,21 @@ function azPage(site: Site): string {
     }),
     path: "/a-z",
     nav: "a-z",
+    head: jsonLd({
+      "@context": "https://schema.org",
+      ...termSetSchema(site),
+      description: fill(t.azDescription, {
+        count: entries.length,
+        site: t.siteName,
+      }),
+      hasDefinedTerm: sorted.map((e) => ({
+        "@type": "DefinedTerm",
+        "@id": `${pageUrl(site.lang, `/${e.slug}`)}#term`,
+        name: e.term,
+        termCode: e.slug,
+        url: pageUrl(site.lang, `/${e.slug}`),
+      })),
+    }),
     main: `<div class="hero hero-compact">
 <h1>${escapeHtml(t.navAz)}</h1>
 <p class="lede">${escapeHtml(fill(t.azLede, { count: entries.length }))}</p>
@@ -847,6 +869,35 @@ ${s.entries
 </nav>`;
 }
 
+/** The dictionary as a schema.org set of terms. The A–Z page stands for it. */
+function termSetSchema(site: Site): Json {
+  const { lang, t } = site;
+  return {
+    "@type": "DefinedTermSet",
+    "@id": `${pageUrl(lang, "/a-z")}#terms`,
+    name: t.siteName,
+    url: pageUrl(lang, "/a-z"),
+    inLanguage: lang,
+  };
+}
+
+/** One term as schema.org data, so a search engine reads it as a definition. */
+function termSchema(site: Site, e: Entry): Json {
+  const { lang } = site;
+  const text = e.text[lang];
+  return {
+    "@context": "https://schema.org",
+    "@type": "DefinedTerm",
+    "@id": `${pageUrl(lang, `/${e.slug}`)}#term`,
+    name: e.term,
+    ...(text.name && text.name !== e.term ? { alternateName: text.name } : {}),
+    description: text.description,
+    termCode: e.slug,
+    url: pageUrl(lang, `/${e.slug}`),
+    inDefinedTermSet: termSetSchema(site),
+  };
+}
+
 function entryPage(site: Site, e: Entry): string {
   const { lang, t, entries } = site;
   const prev = entries[e.position - 2];
@@ -881,7 +932,8 @@ ${
     description: e.text[lang].description,
     path: `/${e.slug}`,
     nav: null,
-    head: `<link rel="alternate" type="text/markdown" href="${url(lang, `/${e.slug}.md`)}">`,
+    head: `<link rel="alternate" type="text/markdown" href="${url(lang, `/${e.slug}.md`)}">
+${jsonLd(termSchema(site, e))}`,
     main: `<div class="entry-layout">
 ${sidebar(site, e)}
 <article class="entry">
@@ -2171,6 +2223,47 @@ function skillsIndex(skill: string, count: number): string {
  * Run the example of every tool on the data just built. The pages, the
  * OpenAPI file and the skill all show these examples as calls that work.
  */
+/**
+ * server.json is the listing of the MCP server in the official MCP Registry.
+ * A published version cannot be changed, so the build stops when the file
+ * and the server disagree.
+ */
+function checkServerManifest(): void {
+  const path = join(ROOT, "server.json");
+  if (!existsSync(path)) fail("server.json is missing at the repository root.");
+  let manifest: Json;
+  try {
+    manifest = JSON.parse(readFileSync(path, "utf8")) as Json;
+  } catch {
+    fail("server.json is not valid JSON.");
+  }
+  const remotes = Array.isArray(manifest.remotes) ? manifest.remotes : [];
+  const remote = (remotes[0] ?? {}) as Json;
+  const repository = (manifest.repository ?? {}) as Json;
+  const description = String(manifest.description ?? "");
+  const wanted: [string, unknown, unknown][] = [
+    ["name", manifest.name, `io.github.${REPO.split("/")[0]}/${SERVER.name}`],
+    ["title", manifest.title, SERVER.title],
+    ["version", manifest.version, SERVER.version],
+    ["repository.url", repository.url, REPO_URL],
+    ["remotes[0].type", remote.type, "streamable-http"],
+    ["remotes[0].url", remote.url, PUBLIC_URL + MCP_PATH],
+    ["websiteUrl", manifest.websiteUrl, `${PUBLIC_URL}/en${DOCS_PATH}`],
+  ];
+  for (const [field, found, expected] of wanted)
+    if (found !== expected)
+      fail(
+        `server.json: "${field}" is ${JSON.stringify(found)}, and the code says ${JSON.stringify(expected)}. Change server.json, or SERVER in api/mcp.ts.`
+      );
+  if (remotes.length !== 1)
+    fail("server.json: there must be exactly one entry in remotes.");
+  // The registry refuses a description of more than 100 characters.
+  if (description.length < 1 || description.length > 100)
+    fail(
+      `server.json: the description has ${description.length} characters, and the registry allows 1 to 100.`
+    );
+}
+
 function checkToolExamples(corpus: Corpus): void {
   const index = buildIndex(corpus);
   for (const tool of TOOLS) {
@@ -2541,6 +2634,7 @@ async function main(): Promise<void> {
   for (const term of corpus.terms)
     write(`data/terms/${term.slug}.json`, termData(corpus, term.slug));
   checkToolExamples(corpus);
+  checkServerManifest();
   for (const site of sites) {
     write(url(site.lang, "/llms.txt").slice(1), llmsText(site, corpus));
     write(url(site.lang, "/llms-full.txt").slice(1), llmsFullText(site));

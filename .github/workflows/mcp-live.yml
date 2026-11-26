@@ -1,0 +1,28 @@
+name: MCP server, live
+
+# Directories that list the server connect to it every day and drop it when
+# it does not answer. This runs the same check first, against production.
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  handshake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Connect to the public server
+        run: |
+          export MCP_URL="$(jq -r '.remotes[0].url' server.json)"
+          npm run check:mcp
