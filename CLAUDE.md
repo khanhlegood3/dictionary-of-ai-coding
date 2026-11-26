@@ -33,3 +33,5 @@ Default canonical label vocabulary (`needs-triage`, `needs-info`, `ready-for-age
 Single-context layout, nested under `internal/` (`internal/CONTEXT.md`, `internal/adr/`). See `internal/domain.md`.
 
 Each entry has a Vietnamese translation in `translations/vi/`, under the same file name. When you add or change an entry in `dictionary/`, make the same change in the translation. Keep term links (`./Term.md`) and the `_Usage:_` marker as they are in the English entry. `npm run build` warns about entries with no translation and about translations whose links differ.
+
+For work on the website, the MCP server or an issue, read `AGENTS.md` first: it has the rules of the repository and the checks to run before a pull request.

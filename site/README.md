@@ -22,6 +22,8 @@
 | `api/mcp.ts`             | The MCP server and the HTTP API. Its tool list is also printed on `/agents/mcp` |
 | `site/agents.js`         | Checks the MCP server and runs the search box on `/agents`, copied as written |
 | `site/agents.css`        | Styles of `/agents`, loaded after `styles.css`    |
+| `site/check-mcp.ts`      | Connects to the MCP server the way a directory does: `npm run check:mcp` |
+| `server.json`            | The listing of the MCP server for the MCP Registry. The build checks it |
 
 Every page is built from the markdown files, so editing an entry and
 rebuilding is the whole publishing step. The only server code is the function
@@ -44,6 +46,11 @@ see [Progress and sync](#progress-and-sync).
 
 The Vietnamese pages are at these paths. The English pages are the same paths
 under `/en`, such as `/en/curriculum` and `/en/harness`.
+
+Each term page carries schema.org data in its head, as JSON-LD: a
+`DefinedTerm` with the term, its Vietnamese name, its description and its
+address. `/a-z` carries the `DefinedTermSet` that lists all of them. A search
+engine can then read a page as a definition.
 
 ## Learn view
 
@@ -189,9 +196,10 @@ name opens its issue. Issues must be switched on for the repository (Settings,
 General, Features).
 
 **Brief for an agent.** Every open task has a "Copy brief" button. It copies
-the issue's number, title, address, labels and text, followed by the working
-rules of this repository, as text to paste into an agent. The rules are
-`tasksBriefSteps` in `site/strings.ts`. The page cannot assign the issue or
+the issue's number, title, address, labels and text, followed by a few steps,
+as text to paste into an agent. The steps are `tasksBriefSteps` in
+`site/strings.ts`. They send the agent to `AGENTS.md` at the repository root,
+which holds the rules and the checks to run. The page cannot assign the issue or
 set a label: it holds no token.
 
 **Pull requests.** The page lists the open pull requests, the oldest first,
@@ -374,6 +382,39 @@ rate limit of the MCP server.
 On a preview deployment that Vercel protects with a sign-in, the function
 cannot fetch the corpus unless the project sets the environment variable
 `VERCEL_AUTOMATION_BYPASS_SECRET`. Production is not protected.
+
+### Checking the server
+
+```sh
+npm run build
+npm run check:mcp                                               # the code, in this process
+MCP_URL=https://ai9k.vercel.app/api/mcp npm run check:mcp       # the public server
+```
+
+`site/check-mcp.ts` connects the way a client and a public directory do:
+`initialize`, the `initialized` notice, `tools/list`. Then it runs the example
+of every tool. Against a running server it also reads `/status.json`, and it
+fails when the server's version differs from `SERVER.version` in the checkout.
+
+| Workflow                          | When it runs                    | What it does                                    |
+| --------------------------------- | ------------------------------- | ----------------------------------------------- |
+| `site.yml`                        | Every pull request, every push to `main` | Typecheck, formatting, build, `check:mcp` |
+| `mcp-live.yml`                    | Every day, or by hand           | `check:mcp` against production                  |
+| `publish-registry.yml`            | By hand only                    | Publishes `server.json` to the MCP Registry     |
+
+### Listing in the MCP Registry
+
+`server.json` at the repository root is the listing for
+`registry.modelcontextprotocol.io`. The build stops when its name, title,
+version or addresses differ from `api/mcp.ts`, or when its description is
+longer than the 100 characters the registry allows.
+
+Publishing is a decision, not a build step: see
+[ADR 0009](../internal/adr/0009-list-the-mcp-server-in-public-directories.md).
+A published version cannot be changed. To publish, open Actions on GitHub,
+choose "Publish to the MCP Registry", run it on `main` and type `publish`. To
+publish a change later, raise `SERVER.version` and `version` in `server.json`
+together, deploy, and run it again.
 
 ## Preview locally
 

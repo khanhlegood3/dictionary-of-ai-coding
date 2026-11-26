@@ -6,6 +6,7 @@
     "generate": "tsx internal/generate-readme.ts",
     "build": "tsx site/build.ts",
     "preview": "tsx site/serve.ts",
+    "check:mcp": "tsx site/check-mcp.ts",
     "prepare": "husky"
   },
   "devDependencies": {

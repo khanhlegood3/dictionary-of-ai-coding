@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.khanhlegood3/ai-coding-dictionary",
+  "title": "AI Coding Dictionary",
+  "description": "Look up the vocabulary of coding with AI agents, in English and Vietnamese. Read-only, no sign-in.",
+  "version": "1.1.0",
+  "repository": {
+    "url": "https://github.com/khanhlegood3/dictionary-of-ai-coding",
+    "source": "github",
+    "id": "1342462394"
+  },
+  "websiteUrl": "https://ai9k.vercel.app/en/agents/mcp",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://ai9k.vercel.app/api/mcp"
+    }
+  ]
+}
