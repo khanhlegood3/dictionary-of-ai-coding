@@ -1,9 +1,13 @@
-// The tasks page: reads the repository's issues from the public GitHub API
-// and draws them as a task list. No dependencies.
+// The tasks page: reads the repository's issues and pull requests from the
+// public GitHub API and draws them as two lists. No dependencies.
 //
 // site/build.ts writes the page, the interface text and, when it can, a copy
-// of the issue list into #tasks-data. The decision records are already in the
+// of both lists into #tasks-data. The decision records are already in the
 // page as HTML.
+//
+// The page only reads. It holds no token, so it cannot label, assign or merge:
+// a task is handed to an agent by copying a brief, and a pull request is
+// merged on GitHub.
 
 (function () {
   var holder = document.getElementById("tasks-data");
@@ -22,7 +26,9 @@
 
   // GitHub allows 60 requests an hour from one address without a token, so a
   // list that was just fetched is reused.
-  var CACHE_KEY = "tasks:" + repo;
+  var API = "https://api.github.com/repos/" + repo;
+  // The key changed when pull requests joined the saved list.
+  var CACHE_KEY = "tasks2:" + repo;
   var CACHE_MS = 2 * 60 * 1000;
   var IN_PROGRESS = "in-progress";
   var VIEWS = ["open", "doing", "done", "all"];
@@ -36,8 +42,18 @@
   var views = document.getElementById("tk-views");
   var labelsGroup = document.getElementById("tk-labels-group");
   var labelsBox = document.getElementById("tk-labels");
+  var pullsList = document.getElementById("tk-pulls");
+  var pullsEmpty = document.getElementById("tk-pulls-empty");
+  var mergedFold = document.getElementById("tk-merged");
+  var mergedSummary = document.getElementById("tk-merged-summary");
+  var mergedList = document.getElementById("tk-merged-list");
+  var branchesFold = document.getElementById("tk-branches");
+  var branchesCheck = document.getElementById("tk-branches-check");
+  var branchesList = document.getElementById("tk-branches-list");
+  var branchesNote = document.getElementById("tk-branches-note");
 
   var tasks = null;
+  var pulls = null;
   var shownAt = null;
   var view = "open";
   var label = "";
@@ -141,47 +157,114 @@
       }),
       comments: issue.comments || 0,
       updated: issue.closed_at || issue.updated_at || "",
+      body: String(issue.body || "").slice(0, data.bodyLimit || 4000),
     };
   }
 
+  // The same cut-down shape the build saves: see `Pull` in site/build.ts.
+  function pullFromApi(issue) {
+    return {
+      n: issue.number,
+      title: issue.title || "",
+      url: issue.html_url || "",
+      open: issue.state === "open",
+      draft: issue.draft === true,
+      merged: (issue.pull_request && issue.pull_request.merged_at) || "",
+      author: (issue.user && issue.user.login) || "",
+      created: issue.created_at || "",
+      head: "",
+      base: "",
+    };
+  }
+
+  function getJson(path) {
+    return fetch(API + path, {
+      headers: { Accept: "application/vnd.github+json" },
+    }).then(function (response) {
+      if (!response.ok) throw new Error("GitHub " + response.status);
+      return response.json();
+    });
+  }
+
   function fetchPage(page, found) {
-    return fetch(
-      "https://api.github.com/repos/" +
-        repo +
-        "/issues?state=all&per_page=100&page=" +
-        page,
-      { headers: { Accept: "application/vnd.github+json" } }
-    )
-      .then(function (response) {
-        if (!response.ok) throw new Error("GitHub " + response.status);
-        return response.json();
-      })
-      .then(function (list) {
+    return getJson("/issues?state=all&per_page=100&page=" + page).then(
+      function (list) {
         list.forEach(function (issue) {
           // The issues endpoint also returns pull requests.
-          if (!issue.pull_request) found.push(fromApi(issue));
+          if (issue.pull_request) found.pulls.push(pullFromApi(issue));
+          else found.tasks.push(fromApi(issue));
         });
         if (list.length === 100 && page < MAX_PAGES)
           return fetchPage(page + 1, found);
         return found;
-      });
+      }
+    );
+  }
+
+  // The branch names come from another endpoint. It is asked only when a
+  // pull request is open, so most page views cost one request, not two.
+  function addBranches(found) {
+    var open = found.pulls.filter(function (pull) {
+      return pull.open;
+    });
+    if (!open.length) return found;
+    return getJson("/pulls?state=open&per_page=100").then(
+      function (list) {
+        list.forEach(function (detail) {
+          open.forEach(function (pull) {
+            if (pull.n !== detail.number) return;
+            pull.draft = detail.draft === true;
+            pull.head = (detail.head && detail.head.ref) || "";
+            pull.base = (detail.base && detail.base.ref) || "";
+          });
+        });
+        return found;
+      },
+      function () {
+        // The pull requests are listed without their branches.
+        return found;
+      }
+    );
+  }
+
+  // Every open pull request, then the newest merged ones.
+  function keptPulls(list) {
+    var merged = list
+      .filter(function (pull) {
+        return pull.merged;
+      })
+      .sort(function (a, b) {
+        return a.merged < b.merged ? 1 : a.merged > b.merged ? -1 : 0;
+      })
+      .slice(0, data.mergedShown || 5);
+    return list
+      .filter(function (pull) {
+        return pull.open;
+      })
+      .concat(merged);
   }
 
   function readCache() {
     try {
       var saved = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
-      if (saved && Array.isArray(saved.tasks) && saved.at) return saved;
+      if (
+        saved &&
+        Array.isArray(saved.tasks) &&
+        Array.isArray(saved.pulls) &&
+        saved.at
+      )
+        return saved;
     } catch (e) {
       // No storage, or something else wrote the key: fetch again.
     }
     return null;
   }
 
-  function writeCache(list, at) {
+  function writeCache(list, pullList, at) {
     try {
       sessionStorage.setItem(
         CACHE_KEY,
-        JSON.stringify({ at: at, tasks: list })
+        JSON.stringify({ at: at, tasks: list, pulls: pullList })
       );
     } catch (e) {
       // The list is fetched again on the next page view.
@@ -217,6 +300,84 @@
     return svg;
   }
 
+  // What an agent needs to start on a task, as text to paste into it.
+  function brief(task) {
+    var values = {
+      n: task.n,
+      repo: repo,
+      title: task.title,
+      url: task.url,
+      labels: task.labels.join(", "),
+    };
+    var body = String(task.body || "").trim();
+    var lines = [
+      fill(ui.briefIntro, values),
+      "",
+      fill(ui.briefTitle, values),
+      fill(ui.briefLink, values),
+    ];
+    if (task.labels.length) lines.push(fill(ui.briefLabels, values));
+    lines.push("", ui.briefBody, body || ui.briefNoBody);
+    if (body.length >= (data.bodyLimit || 4000)) lines.push(ui.briefCut);
+    lines.push("", ui.briefStepsTitle);
+    (ui.briefSteps || []).forEach(function (step) {
+      lines.push("- " + fill(step, values));
+    });
+    return lines.join("\n") + "\n";
+  }
+
+  // Copy text, also where the clipboard API is missing or refused.
+  function copyText(text) {
+    function byHand() {
+      var area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.top = "0";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      var done = false;
+      try {
+        done = document.execCommand("copy");
+      } catch (e) {
+        done = false;
+      }
+      area.remove();
+      return done ? Promise.resolve() : Promise.reject(new Error("no copy"));
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(text).catch(byHand);
+    return byHand();
+  }
+
+  function copyIcon() {
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS(ns, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.4");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("d", "M5.5 5.5v-3h8v8h-3M2.5 5.5h8v8h-8z");
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function briefButton(task) {
+    var button = el("button", "tk-brief");
+    button.type = "button";
+    button.title = ui.briefHint;
+    button.setAttribute("data-brief", String(task.n));
+    button.appendChild(copyIcon());
+    button.appendChild(el("span", "", ui.brief));
+    return button;
+  }
+
   function row(task) {
     var tr = document.createElement("tr");
 
@@ -241,6 +402,12 @@
       meta.appendChild(comments);
     }
     first.appendChild(meta);
+    // A finished task needs no brief.
+    if (task.open) {
+      var actions = el("div", "tk-task__actions");
+      actions.appendChild(briefButton(task));
+      first.appendChild(actions);
+    }
     tr.appendChild(first);
 
     var who = document.createElement("td");
@@ -353,10 +520,85 @@
           : ui.empty;
   }
 
-  function show(list, at) {
+  function pullItem(pull) {
+    var item = el("li", "tk-pull");
+    var main = el("div", "tk-pull__main");
+    var title = el("a", "tk-task__title", pull.title);
+    title.href = pull.url;
+    title.target = "_blank";
+    title.rel = "noopener";
+    main.appendChild(title);
+    var meta = el("div", "tk-task__meta");
+    meta.appendChild(el("span", "num", "#" + pull.n));
+    if (pull.head) {
+      meta.appendChild(el("span", "tk-branch", pull.head));
+      if (pull.base) {
+        meta.appendChild(el("span", "tk-pull__into", ui.pullsInto));
+        meta.appendChild(el("span", "tk-branch", pull.base));
+      }
+    }
+    if (pull.author) meta.appendChild(el("span", "tk-pull__who", pull.author));
+    main.appendChild(meta);
+    item.appendChild(main);
+    if (pull.open) {
+      var kind = pull.draft ? "draft" : "doing";
+      item.appendChild(
+        el(
+          "span",
+          "tk-pill tk-pill--" + kind,
+          pull.draft ? ui.pullsDraft : ui.pullsReady
+        )
+      );
+    }
+    var date = pull.open ? pull.created : pull.merged;
+    var time = el("span", "tk-when", when(date));
+    if (date) time.title = new Date(date).toLocaleString(locale);
+    item.appendChild(time);
+    return item;
+  }
+
+  function drawPulls() {
+    var open = pulls
+      ? pulls
+          .filter(function (pull) {
+            return pull.open;
+          })
+          .sort(function (a, b) {
+            // The one that has waited longest comes first.
+            return a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
+          })
+      : null;
+    var nodes = document.querySelectorAll('[data-count="pulls"]');
+    for (var i = 0; i < nodes.length; i++)
+      nodes[i].textContent = open ? String(open.length) : "–";
+    if (!pullsList || !open) return;
+
+    pullsList.textContent = "";
+    open.forEach(function (pull) {
+      pullsList.appendChild(pullItem(pull));
+    });
+    pullsList.hidden = open.length === 0;
+    pullsEmpty.hidden = open.length > 0;
+    pullsEmpty.textContent = ui.pullsEmpty;
+
+    var merged = pulls.filter(function (pull) {
+      return !pull.open && pull.merged;
+    });
+    mergedList.textContent = "";
+    merged.forEach(function (pull) {
+      mergedList.appendChild(pullItem(pull));
+    });
+    mergedSummary.textContent = fill(ui.pullsMerged, { count: merged.length });
+    mergedFold.hidden = merged.length === 0;
+    if (branchesFold) branchesFold.hidden = false;
+  }
+
+  function show(list, pullList, at) {
     tasks = list;
+    pulls = pullList || [];
     shownAt = at;
     draw();
+    drawPulls();
   }
 
   // The filters live in the address, so a shared link opens the same list.
@@ -404,7 +646,7 @@
     if (busy) return;
     var cached = force ? null : readCache();
     if (cached && Date.now() - new Date(cached.at).getTime() < CACHE_MS) {
-      show(cached.tasks, cached.at);
+      show(cached.tasks, cached.pulls, cached.at);
       sync.textContent = fill(ui.updated, { time: clock(cached.at) });
       setNotice("");
       refresh.hidden = false;
@@ -418,14 +660,16 @@
     if (!tasks) {
       var fallback = cached || data.snapshot;
       if (fallback && Array.isArray(fallback.tasks))
-        show(fallback.tasks, fallback.at);
+        show(fallback.tasks, fallback.pulls, fallback.at);
     }
 
-    fetchPage(1, [])
-      .then(function (list) {
+    fetchPage(1, { tasks: [], pulls: [] })
+      .then(addBranches)
+      .then(function (found) {
         var at = new Date().toISOString();
-        writeCache(list, at);
-        show(list, at);
+        var kept = keptPulls(found.pulls);
+        writeCache(found.tasks, kept, at);
+        show(found.tasks, kept, at);
         sync.textContent = fill(ui.updated, { time: clock(at) });
         setNotice("");
       })
@@ -437,6 +681,7 @@
           sync.textContent = "";
           setNotice(ui.error);
           setCounts();
+          drawPulls();
         }
       })
       .then(function () {
@@ -473,6 +718,119 @@
   refresh.addEventListener("click", function () {
     load(true);
   });
+
+  var briefTimers = {};
+  rows.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-brief]");
+    if (!button || !tasks) return;
+    var number = Number(button.getAttribute("data-brief"));
+    var task = null;
+    tasks.forEach(function (one) {
+      if (one.n === number) task = one;
+    });
+    if (!task) return;
+    var text = brief(task);
+    var name = button.querySelector("span");
+    copyText(text).then(
+      function () {
+        name.textContent = ui.briefCopied;
+        button.classList.add("is-copied");
+        clearTimeout(briefTimers[number]);
+        briefTimers[number] = setTimeout(function () {
+          name.textContent = ui.brief;
+          button.classList.remove("is-copied");
+        }, 2500);
+      },
+      function () {
+        // No way to copy here: show the text, so it can be copied by hand.
+        window.prompt(ui.briefHint, text);
+      }
+    );
+  });
+
+  // Branches whose last commit a merged pull request already carried. This
+  // costs two requests, so it runs only when asked for.
+  function checkBranches() {
+    branchesCheck.disabled = true;
+    branchesList.hidden = true;
+    branchesNote.hidden = false;
+    branchesNote.textContent = ui.branchesChecking;
+    Promise.all([
+      getJson("/branches?per_page=100"),
+      getJson("/pulls?state=closed&per_page=100&sort=updated&direction=desc"),
+    ])
+      .then(function (answers) {
+        var own = String(repo).toLowerCase();
+        // The newest merged pull request of each branch.
+        var latest = {};
+        answers[1].forEach(function (pull) {
+          var head = pull.head;
+          if (!pull.merged_at || !head || !head.repo) return;
+          if (String(head.repo.full_name).toLowerCase() !== own) return;
+          var known = latest[head.ref];
+          if (!known || known.merged_at < pull.merged_at)
+            latest[head.ref] = pull;
+        });
+        var inUse = {};
+        (pulls || []).forEach(function (pull) {
+          if (pull.open && pull.head) inUse[pull.head] = true;
+        });
+        var done = [];
+        var other = 0;
+        answers[0].forEach(function (branch) {
+          if (branch.name === (data.defaultBranch || "main")) return;
+          var pull = latest[branch.name];
+          if (
+            pull &&
+            !inUse[branch.name] &&
+            branch.commit &&
+            pull.head.sha === branch.commit.sha
+          )
+            done.push({ name: branch.name, pull: pull });
+          else other += 1;
+        });
+
+        branchesList.textContent = "";
+        done.forEach(function (found) {
+          var item = el("li", "tk-branches__item");
+          var name = el("a", "tk-branch", found.name);
+          name.href =
+            "https://github.com/" +
+            repo +
+            "/tree/" +
+            found.name.split("/").map(encodeURIComponent).join("/");
+          name.target = "_blank";
+          name.rel = "noopener";
+          item.appendChild(name);
+          var by = el(
+            "a",
+            "tk-branches__by",
+            fill(ui.branchesMergedBy, { n: found.pull.number })
+          );
+          by.href = found.pull.html_url;
+          by.target = "_blank";
+          by.rel = "noopener";
+          item.appendChild(by);
+          branchesList.appendChild(item);
+        });
+        branchesList.hidden = done.length === 0;
+        var notes = [];
+        if (!done.length) notes.push(ui.branchesNone);
+        if (other) notes.push(fill(ui.branchesOther, { count: other }));
+        branchesNote.textContent = notes.join(" ");
+        branchesNote.hidden = notes.length === 0;
+      })
+      .catch(function () {
+        branchesNote.textContent = ui.branchesError;
+        branchesNote.hidden = false;
+      })
+      .then(function () {
+        branchesCheck.disabled = false;
+      });
+  }
+
+  if (branchesCheck && branchesList && branchesNote)
+    branchesCheck.addEventListener("click", checkBranches);
 
   var share = document.getElementById("tk-share");
   var shareLabel = document.getElementById("tk-share-label");
@@ -520,5 +878,6 @@
 
   readAddress();
   draw();
+  drawPulls();
   load(false);
 })();

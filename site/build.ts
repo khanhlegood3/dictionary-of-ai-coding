@@ -5,7 +5,9 @@
 // The tasks page also reads internal/adr/*.md, and the build saves a copy of
 // the repository's GitHub issues in it when GitHub can be reached.
 // The same data is also written as files for machines (llms.txt, /data/*.json,
-// sitemap.xml), and /agents documents them and the MCP server in api/mcp.ts.
+// a markdown copy of each term, openapi.json, the discovery files under
+// /.well-known, sitemap.xml), and /agents documents them and the server in
+// api/mcp.ts.
 //
 // The site is built once per language. Vietnamese is the default and lives at
 // the root; English lives under /en. Both share the same terms, slugs and map.
@@ -24,13 +26,19 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
 import {
+  API_PATH,
   CORPUS_PATH,
   DOCS_PATH,
+  INSTRUCTIONS,
   LIMITS,
+  MCP_PATH,
+  OPENAPI_PATH,
   PROTOCOL_VERSIONS,
   SERVER,
   STATUS_PATH,
   TOOLS,
+  buildIndex,
+  exampleAddress,
   type Corpus,
   type CorpusText,
 } from "../api/mcp";
@@ -69,11 +77,12 @@ const SITE_URL = (process.env.SITE_URL || "https://ai9k.vercel.app").replace(
   /\/+$/,
   ""
 );
-/**
- * The address of the MCP server: the function in api/mcp.ts. It is not at
- * /mcp, because that is the page of the term "MCP".
- */
-const MCP_PATH = "/api/mcp";
+/** Where an MCP client looks for the server by itself (SEP-1649, a draft). */
+const SERVER_CARD_PATH = "/.well-known/mcp/server-card.json";
+/** The list of agent skills the site publishes (Agent Skills Discovery 0.2.0). */
+const SKILLS_INDEX_PATH = "/.well-known/agent-skills/index.json";
+const SKILL_NAME = SERVER.name;
+const SKILL_PATH = `/.well-known/agent-skills/${SKILL_NAME}/SKILL.md`;
 
 const AUTHOR_NAME = "Lê Xuân Khánh";
 const AUTHOR_URL = "https://khanhxl.vercel.app/";
@@ -515,6 +524,8 @@ function layout(
      * have no footer.
      */
     variant?: "map" | "learn" | "tasks" | "agents";
+    /** More tags for the head of the page. */
+    head?: string;
   }
 ): string {
   const { lang, t } = site;
@@ -558,7 +569,7 @@ function layout(
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>${THEME_BOOT}</script>
 <link rel="stylesheet" href="/assets/styles.css">
-<script src="/assets/app.js" defer></script>${assets}
+<script src="/assets/app.js" defer></script>${assets}${opts.head ? `\n${opts.head}` : ""}
 </head>
 <body${isMap ? ' class="page-map"' : isLearn ? ' class="page-learn"' : isTasks ? ' class="page-tasks"' : ""}>
 <a class="skip" href="#main">${escapeHtml(t.skip)}</a>
@@ -870,6 +881,7 @@ ${
     description: e.text[lang].description,
     path: `/${e.slug}`,
     nav: null,
+    head: `<link rel="alternate" type="text/markdown" href="${url(lang, `/${e.slug}.md`)}">`,
     main: `<div class="entry-layout">
 ${sidebar(site, e)}
 <article class="entry">
@@ -1285,9 +1297,31 @@ type Task = {
   assignees: { login: string; avatar: string }[];
   comments: number;
   updated: string;
+  /** The text of the issue, for the brief. Cut at BODY_LIMIT characters. */
+  body: string;
 };
 
-type TaskSnapshot = { at: string; tasks: Task[] };
+type Pull = {
+  n: number;
+  title: string;
+  url: string;
+  open: boolean;
+  draft: boolean;
+  /** When it was merged, or "" when it was not. */
+  merged: string;
+  author: string;
+  created: string;
+  /** The branch it comes from and the one it goes into, when known. */
+  head: string;
+  base: string;
+};
+
+type TaskSnapshot = { at: string; tasks: Task[]; pulls: Pull[] };
+
+const BODY_LIMIT = 4000;
+/** How many merged pull requests the page keeps, newest first. */
+const MERGED_SHOWN = 5;
+const DEFAULT_BRANCH = "main";
 
 /**
  * Copy the issue list from GitHub at build time. The page shows this copy when
@@ -1303,6 +1337,7 @@ async function loadTaskSnapshot(): Promise<TaskSnapshot | null> {
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
     const tasks: Task[] = [];
+    const pulls: Pull[] = [];
     for (let page = 1; page <= 3; page++) {
       const response = await fetch(
         `https://api.github.com/repos/${REPO}/issues?state=all&per_page=100&page=${page}`,
@@ -1312,7 +1347,22 @@ async function loadTaskSnapshot(): Promise<TaskSnapshot | null> {
       const list = (await response.json()) as Record<string, unknown>[];
       for (const issue of list) {
         // The issues endpoint also returns pull requests.
-        if (issue.pull_request) continue;
+        const pull = issue.pull_request as { merged_at?: string } | undefined;
+        if (pull) {
+          pulls.push({
+            n: Number(issue.number),
+            title: String(issue.title ?? ""),
+            url: String(issue.html_url ?? ""),
+            open: issue.state === "open",
+            draft: issue.draft === true,
+            merged: String(pull.merged_at ?? ""),
+            author: String((issue.user as { login?: string })?.login ?? ""),
+            created: String(issue.created_at ?? ""),
+            head: "",
+            base: "",
+          });
+          continue;
+        }
         tasks.push({
           n: Number(issue.number),
           title: String(issue.title ?? ""),
@@ -1329,11 +1379,47 @@ async function loadTaskSnapshot(): Promise<TaskSnapshot | null> {
           })),
           comments: Number(issue.comments ?? 0),
           updated: String(issue.closed_at ?? issue.updated_at ?? ""),
+          body: String(issue.body ?? "").slice(0, BODY_LIMIT),
         });
       }
       if (list.length < 100) break;
     }
-    return { at: new Date().toISOString(), tasks };
+    // The branch names come from another endpoint. It is asked only when a
+    // pull request is open, and the list is fine without its answer.
+    if (pulls.some((pull) => pull.open)) {
+      try {
+        const response = await fetch(
+          `https://api.github.com/repos/${REPO}/pulls?state=open&per_page=100`,
+          { headers, signal: AbortSignal.timeout(8000) }
+        );
+        if (response.ok) {
+          const list = (await response.json()) as {
+            number?: number;
+            draft?: boolean;
+            head?: { ref?: string };
+            base?: { ref?: string };
+          }[];
+          for (const detail of list) {
+            const pull = pulls.find((p) => p.n === detail.number);
+            if (!pull) continue;
+            pull.draft = detail.draft === true;
+            pull.head = detail.head?.ref ?? "";
+            pull.base = detail.base?.ref ?? "";
+          }
+        }
+      } catch {
+        // The pull requests are listed without their branches.
+      }
+    }
+    const merged = pulls
+      .filter((pull) => pull.merged)
+      .sort((a, b) => b.merged.localeCompare(a.merged))
+      .slice(0, MERGED_SHOWN);
+    return {
+      at: new Date().toISOString(),
+      tasks,
+      pulls: [...pulls.filter((pull) => pull.open), ...merged],
+    };
   } catch (error) {
     warnings.push(
       `the issue list of ${REPO} could not be read (${error instanceof Error ? error.message : String(error)}); /tasks is built without a saved copy`
@@ -1398,7 +1484,33 @@ function tasksPage(
       colStatus: t.tasksColStatus,
       colUpdated: t.tasksColUpdated,
       labelNames: t.tasksLabelNames,
+      brief: t.tasksBrief,
+      briefHint: t.tasksBriefHint,
+      briefCopied: t.tasksBriefCopied,
+      briefIntro: t.tasksBriefIntro,
+      briefTitle: t.tasksBriefTitle,
+      briefLink: t.tasksBriefLink,
+      briefLabels: t.tasksBriefLabels,
+      briefBody: t.tasksBriefBody,
+      briefNoBody: t.tasksBriefNoBody,
+      briefCut: t.tasksBriefCut,
+      briefStepsTitle: t.tasksBriefStepsTitle,
+      briefSteps: t.tasksBriefSteps,
+      pullsEmpty: t.tasksPullsEmpty,
+      pullsReady: t.tasksPullsReady,
+      pullsDraft: t.tasksPullsDraft,
+      pullsInto: t.tasksPullsInto,
+      pullsMerged: t.tasksPullsMerged,
+      branchesCheck: t.tasksBranchesCheck,
+      branchesChecking: t.tasksBranchesChecking,
+      branchesNone: t.tasksBranchesNone,
+      branchesMergedBy: t.tasksBranchesMergedBy,
+      branchesOther: t.tasksBranchesOther,
+      branchesError: t.tasksBranchesError,
     },
+    bodyLimit: BODY_LIMIT,
+    mergedShown: MERGED_SHOWN,
+    defaultBranch: DEFAULT_BRANCH,
   };
   const view = (key: string, label: string, pressed: boolean) =>
     `<button type="button" class="tk-view" data-view="${key}" aria-pressed="${pressed}"><span class="tk-dot tk-dot--${key}" aria-hidden="true"></span><span class="tk-view__name">${escapeHtml(label)}</span><span class="tk-count" data-count="${key}">–</span></button>`;
@@ -1441,6 +1553,7 @@ ${view("all", t.tasksAll, false)}
 <div class="tk-labels" id="tk-labels" role="group" aria-labelledby="tk-labels-head"></div>
 </div>
 <div class="tk-side__group tk-side__group--links">
+<a class="tk-side__link" href="#pulls"><span>${escapeHtml(t.tasksPulls)}</span><span class="tk-count" data-count="pulls">–</span></a>
 <a class="tk-side__link" href="#adr"><span>${escapeHtml(t.tasksDecisions)}</span><span class="tk-count">${adrs.length}</span></a>
 </div>
 </aside>
@@ -1460,6 +1573,7 @@ ${view("all", t.tasksAll, false)}
 ${stat("open", t.tasksOpen, "")}
 ${stat("doing", t.tasksDoing, "")}
 ${stat("done", t.tasksDone, "")}
+${stat("pulls", t.tasksPullsWaiting, "")}
 ${stat("pending", t.tasksPending, String(pending))}
 </ul>
 <section class="tk-panel" aria-labelledby="tk-list-title">
@@ -1475,6 +1589,28 @@ ${stat("pending", t.tasksPending, String(pending))}
 </table>
 <p class="tk-empty" id="tk-empty" hidden></p>
 <noscript><p class="tk-empty">${linkify(t.tasksNoScript, { link: `${REPO_URL}/issues` })}</p></noscript>
+</section>
+<section class="tk-panel" id="pulls" aria-labelledby="tk-pulls-title">
+<header class="tk-panel__head">
+<h2 id="tk-pulls-title">${escapeHtml(t.tasksPulls)}</h2>
+<a class="tk-btn tk-btn--quiet tk-panel__action" href="${REPO_URL}/pulls" target="_blank" rel="noopener">${ICON_GITHUB}<span>${escapeHtml(t.tasksPullsAll)}</span></a>
+</header>
+<p class="tk-panel__lede">${escapeHtml(t.tasksPullsLede)}</p>
+<ul class="tk-pulls" id="tk-pulls" hidden></ul>
+<p class="tk-empty" id="tk-pulls-empty" hidden></p>
+<details class="tk-fold" id="tk-merged" hidden>
+<summary id="tk-merged-summary"></summary>
+<ul class="tk-pulls tk-pulls--merged" id="tk-merged-list"></ul>
+</details>
+<details class="tk-fold" id="tk-branches" hidden>
+<summary>${escapeHtml(t.tasksBranches)}</summary>
+<div class="tk-fold__body">
+<p>${escapeHtml(t.tasksBranchesLede)}</p>
+<p class="tk-fold__actions"><button type="button" class="tk-btn" id="tk-branches-check">${escapeHtml(t.tasksBranchesCheck)}</button><a href="${REPO_URL}/branches" target="_blank" rel="noopener">${escapeHtml(t.tasksBranchesManage)}</a></p>
+<ul class="tk-branches" id="tk-branches-list" hidden></ul>
+<p class="tk-fold__note" id="tk-branches-note" role="status" hidden></p>
+</div>
+</details>
 </section>
 <section class="tk-panel" id="adr" aria-labelledby="tk-adr-title">
 <header class="tk-panel__head">
@@ -1527,6 +1663,15 @@ function machineFiles(entries: Entry[]): MachineFile[] {
     one("corpus", CORPUS_PATH),
     one("sitemap", "/sitemap.xml"),
     one("robots", "/robots.txt"),
+    ...LANGS.map((lang) => ({
+      key: BASE[lang] ? `markdown_${lang}` : "markdown",
+      path: url(lang, "/{slug}.md"),
+      example: url(lang, `/${entries[0]?.slug ?? ""}.md`),
+    })),
+    one("openapi", OPENAPI_PATH),
+    one("server_card", SERVER_CARD_PATH),
+    one("skills", SKILLS_INDEX_PATH),
+    one("skill", SKILL_PATH),
   ];
 }
 
@@ -1583,7 +1728,13 @@ function buildCorpus(sections: Section[], entries: Entry[]): Corpus {
     })),
     repository: REPO_URL,
     upstream: UPSTREAM_URL,
-    files: { ...files, mcp: MCP_PATH, status: STATUS_PATH, docs: DOCS_PATH },
+    files: {
+      ...files,
+      mcp: MCP_PATH,
+      api: API_PATH,
+      status: STATUS_PATH,
+      docs: DOCS_PATH,
+    },
     ...content,
   };
 }
@@ -1701,12 +1852,40 @@ function llmsText(site: Site, corpus: Corpus): string {
   const intro = fill(t.llmsIntro, {
     count: entries.length,
     sections: sections.length,
-    full: pageUrl(lang, "/llms-full.txt"),
     other,
-    index: `${SITE_URL}/data/index.json`,
-    mcp: SITE_URL + MCP_PATH,
-    docs: pageUrl(lang, DOCS_PATH),
   });
+  // The ways in, most useful first. Each needs a name in site/strings.ts.
+  const ways: [string, string][] = [
+    ["mcp", SITE_URL + MCP_PATH],
+    ["api", SITE_URL + API_PATH],
+    ["openapi", SITE_URL + OPENAPI_PATH],
+    ["markdown", `${pageUrl(lang, `/${entries[0]?.slug ?? ""}`)}.md`],
+    ["full", pageUrl(lang, "/llms-full.txt")],
+    ["index", `${SITE_URL}/data/index.json`],
+    ["skills", SITE_URL + SKILLS_INDEX_PATH],
+    ["card", SITE_URL + SERVER_CARD_PATH],
+    ["guide", pageUrl(lang, "/agents")],
+  ];
+  const search = TOOLS.find((tool) => tool.name === "search") ?? TOOLS[0];
+  const example = search ? SITE_URL + exampleAddress(search) : "";
+  const connect = [
+    `## ${t.llmsConnectTitle}`,
+    ways
+      .map(([key, address]) => {
+        const text = t.llmsConnect[key];
+        if (!text)
+          fail(`site/strings.ts has no "${lang}" text for llms.txt "${key}".`);
+        return `- [${text[0]}](${address}): ${fill(text[1], { example })}`;
+      })
+      .join("\n"),
+    `### ${t.llmsToolsTitle}`,
+    TOOLS.map(
+      (tool) =>
+        `- [${tool.name}](${pageUrl(lang, DOCS_PATH)}#tool-${tool.name}): ${tool.title}`
+    ).join("\n"),
+    `### ${t.llmsStartTitle}`,
+    t.llmsStart.map((line) => `- ${line}`).join("\n"),
+  ].join("\n\n");
   const body = sections
     .map(
       (s) =>
@@ -1718,7 +1897,301 @@ function llmsText(site: Site, corpus: Corpus): string {
           .join("\n")}`
     )
     .join("\n\n");
-  return `${textFileHead(site, intro)}\nVersion: ${corpus.version}\n\n${body}\n`;
+  return `${textFileHead(site, intro)}\nVersion: ${corpus.version}\n\n${connect}\n\n${body}\n`;
+}
+
+/** /<slug>.md: one entry as markdown, for a reader that wants no HTML. */
+function termMarkdown(site: Site, e: Entry): string {
+  const { lang, t, entries } = site;
+  const text = e.text[lang];
+  const prev = entries[e.position - 2];
+  const next = entries[e.position];
+  const mentionedIn = entries.filter((o) => o.linksTo.has(e.term));
+  const link = (o: Entry) => `[${o.term}](${pageUrl(lang, `/${o.slug}`)}.md)`;
+  const lines = [
+    `${fill(t.section, { n: e.section.number })} — ${sectionTitle(site, e.section)} · ${fill(t.termOf, { i: e.position, total: entries.length })}`,
+    `${t.mdPage}: ${pageUrl(lang, `/${e.slug}`)}`,
+    `${t.mdLearn}: ${pageUrl(lang, `/learn#/${e.slug}`)}`,
+    `${t.mdMap}: ${pageUrl(lang, `/?term=${e.slug}`)}`,
+    `${t.mdData}: ${SITE_URL}/data/terms/${e.slug}.json`,
+    ...(mentionedIn.length
+      ? [`${t.mentionedIn}: ${mentionedIn.map(link).join(", ")}`]
+      : []),
+    ...(prev ? [`${t.previous}: ${link(prev)}`] : []),
+    ...(next ? [`${t.next}: ${link(next)}`] : []),
+  ];
+  return `${[
+    `# ${termHeading(site, e)}`,
+    `> ${text.description}`,
+    text.markdown,
+    ...(text.usageMarkdown ? [`**${t.usage}**`, text.usageMarkdown] : []),
+    "---",
+    lines.map((line) => `- ${line}`).join("\n"),
+    t.mdNote,
+  ].join("\n\n")}\n`;
+}
+
+type Json = Record<string, unknown>;
+
+/** /openapi.json: the plain HTTP API, described from the server's own tools. */
+function openApi(): string {
+  const problem = (description: string) => ({
+    description,
+    content: {
+      "application/json": { schema: { $ref: "#/components/schemas/Problem" } },
+    },
+  });
+  const paths: Json = {
+    [API_PATH]: {
+      get: {
+        operationId: "list_tools",
+        summary: "List the tools",
+        description:
+          "What the API offers: each tool with its address, its parameters and an example that works.",
+        responses: {
+          "200": {
+            description: "The tools.",
+            content: {
+              "application/json": { schema: { type: "object" } },
+            },
+          },
+          "429": { $ref: "#/components/responses/TooManyRequests" },
+        },
+      },
+    },
+  };
+  for (const tool of TOOLS) {
+    const properties = (tool.inputSchema.properties ?? {}) as Record<
+      string,
+      Json
+    >;
+    const required = (tool.inputSchema.required ?? []) as string[];
+    const responses = {
+      "200": {
+        description: "The answer of the tool.",
+        content: { "application/json": { schema: tool.outputSchema } },
+      },
+      "400": { $ref: "#/components/responses/BadRequest" },
+      "429": { $ref: "#/components/responses/TooManyRequests" },
+      "503": { $ref: "#/components/responses/Unavailable" },
+    };
+    paths[`${API_PATH}/${tool.name}`] = {
+      get: {
+        operationId: tool.name,
+        summary: tool.title,
+        description: tool.description,
+        parameters: Object.entries(properties).map(([name, property]) => {
+          const { description, ...schema } = property;
+          return {
+            name,
+            in: "query",
+            required: required.includes(name),
+            ...(description ? { description } : {}),
+            // A list is written as values with commas between them.
+            ...(schema.type === "array"
+              ? { style: "form", explode: false }
+              : {}),
+            schema,
+            ...(name in tool.example ? { example: tool.example[name] } : {}),
+          };
+        }),
+        responses,
+      },
+      post: {
+        operationId: `${tool.name}_post`,
+        summary: `${tool.title} (POST)`,
+        description:
+          "The same call, with the parameters as a JSON object in the body.",
+        requestBody: {
+          required: required.length > 0,
+          content: {
+            "application/json": {
+              schema: tool.inputSchema,
+              example: tool.example,
+            },
+          },
+        },
+        responses,
+      },
+    };
+  }
+  return JSON.stringify(
+    {
+      openapi: "3.1.0",
+      info: {
+        title: `${SERVER.title} API`,
+        version: SERVER.version,
+        description: `${STRINGS.en.tagline} Every operation only reads and needs no sign-in. One address may send ${LIMITS.requests} requests per ${LIMITS.windowSeconds} seconds. The same tools are an MCP server at ${SITE_URL}${MCP_PATH}.`,
+      },
+      servers: [{ url: SITE_URL }],
+      externalDocs: {
+        description: "How to connect an agent",
+        url: pageUrl("en", "/agents"),
+      },
+      paths,
+      components: {
+        schemas: {
+          Problem: {
+            type: "object",
+            properties: {
+              error: {
+                type: "object",
+                properties: {
+                  code: { type: "string" },
+                  message: { type: "string" },
+                },
+                required: ["code", "message"],
+              },
+              docs: { type: "string" },
+            },
+            required: ["error"],
+          },
+        },
+        responses: {
+          BadRequest: problem(
+            "A parameter is missing or wrong. The message says which."
+          ),
+          TooManyRequests: problem(
+            "Over the rate limit. Retry after the seconds in the Retry-After header."
+          ),
+          Unavailable: problem(
+            "The dictionary data could not be loaded. Try again shortly."
+          ),
+        },
+      },
+    },
+    null,
+    1
+  );
+}
+
+/** The MCP server card: lets a client find the server from the site address. */
+function serverCard(): string {
+  return JSON.stringify(
+    {
+      $schema:
+        "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
+      version: "1.0",
+      protocolVersion: PROTOCOL_VERSIONS[0],
+      serverInfo: SERVER,
+      description: STRINGS.en.tagline,
+      documentationUrl: pageUrl("en", DOCS_PATH),
+      transport: { type: "streamable-http", endpoint: MCP_PATH },
+      capabilities: { tools: { listChanged: false } },
+      authentication: { required: false, schemes: [] },
+      instructions: INSTRUCTIONS,
+      tools: TOOLS.map((tool) => ({
+        name: tool.name,
+        title: tool.title,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    },
+    null,
+    1
+  );
+}
+
+/** What the skill is for. The skill file and the index carry the same text. */
+function skillDescription(count: number): string {
+  return `Look up the vocabulary of coding with AI agents (context window, harness, subagent, compaction, MCP, hallucination and more) in a curated dictionary of ${count} terms, in English and Vietnamese. Use when the user asks what such a term means, how two terms differ, how terms relate, or wants one explained in Vietnamese.`;
+}
+
+/** The agent skill: when and how an agent should use this dictionary. */
+function skillFile(entries: Entry[], sections: Section[]): string {
+  const api = SITE_URL + API_PATH;
+  const tools = TOOLS.map(
+    (tool) =>
+      `- \`${tool.name}\`: ${tool.title}. Example: \`GET ${SITE_URL}${exampleAddress(tool)}\``
+  ).join("\n");
+  const first = entries[0]?.slug ?? "";
+  return `---
+name: ${SKILL_NAME}
+description: ${skillDescription(entries.length)}
+---
+
+# ${SERVER.title}
+
+${entries.length} terms of coding with AI, in ${sections.length} sections that follow a teaching order. Every term has an English and a Vietnamese text. The site is ${SITE_URL}. Everything here only reads, and nothing needs a sign-in.
+
+## When to use it
+
+- The user asks what a term of AI coding means: "what is a context window", "harness là gì".
+- The user asks how two terms differ, or how terms relate to each other.
+- The user wants such a term explained in Vietnamese, or wants the accepted Vietnamese name of an English term.
+- You are about to explain one of these terms and want a checked definition to cite.
+
+Do not use it for anything else. The dictionary defines terms; it holds no news, no product documentation and no code.
+
+## How to look a term up
+
+Use the first way that you have.
+
+1. **MCP.** Connect to \`${SITE_URL}${MCP_PATH}\` (Streamable HTTP, stateless). The tools are listed below.
+2. **HTTP.** Call \`GET ${api}/<tool>?parameter=value\`. The answer is the same JSON object that the MCP tool returns. \`GET ${api}\` lists the tools, and \`${SITE_URL}${OPENAPI_PATH}\` describes them.
+3. **Files.** Read \`${SITE_URL}/llms.txt\` for one line per term, then \`${SITE_URL}/<slug>.md\` for one term, such as \`${SITE_URL}/${first}.md\`. English is under \`/en\`.
+
+## Tools
+
+${tools}
+
+## Rules
+
+- With words or a question and no slug, call \`search\` first, then \`get_term\` with a slug from the results.
+- \`search\` matches words, not meaning. When the results are no use, search again with the key noun only.
+- An unknown slug is not an error: the answer has \`found: false\` and \`suggestions\`. Retry with one of them.
+- Pass \`lang\` as \`vi\` or \`en\`, after the language the user writes in. The default is \`vi\`.
+- Cite the \`url\` of each term you use.
+- When the user wants to study a term, give its \`learn_url\`. When the user wants to see what a term connects to, give its \`map_url\`.
+- One address may send ${LIMITS.requests} requests per ${LIMITS.windowSeconds} seconds. On \`429\`, wait for the seconds in \`Retry-After\`.
+`;
+}
+
+/** /.well-known/agent-skills/index.json: the skills, each with its digest. */
+function skillsIndex(skill: string, count: number): string {
+  return JSON.stringify(
+    {
+      $schema: "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+      skills: [
+        {
+          name: SKILL_NAME,
+          type: "skill-md",
+          description: skillDescription(count),
+          url: SKILL_PATH,
+          digest: `sha256:${createHash("sha256").update(skill).digest("hex")}`,
+        },
+      ],
+    },
+    null,
+    1
+  );
+}
+
+/**
+ * Run the example of every tool on the data just built. The pages, the
+ * OpenAPI file and the skill all show these examples as calls that work.
+ */
+function checkToolExamples(corpus: Corpus): void {
+  const index = buildIndex(corpus);
+  for (const tool of TOOLS) {
+    let answer: Json;
+    try {
+      answer = tool.run(index, tool.example);
+    } catch (error) {
+      fail(
+        `The example of the tool "${tool.name}" in api/mcp.ts fails: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+    const missing = answer.missing;
+    if (
+      answer.found === false ||
+      answer.total === 0 ||
+      (Array.isArray(missing) && missing.length > 0)
+    )
+      fail(
+        `The example of the tool "${tool.name}" in api/mcp.ts finds nothing in the dictionary.`
+      );
+  }
 }
 
 /** /llms-full.txt: every entry in full, in teaching order. */
@@ -1830,6 +2303,19 @@ ${facts([
   [t.agentsStatusLabel, mcpStatus(site)],
 ])}
 <p><a class="more" href="${url(lang, DOCS_PATH)}">${escapeHtml(t.agentsMcpMore)}</a></p>
+</section>
+<section class="section" id="api" aria-labelledby="api-heading">
+<h2 id="api-heading">${escapeHtml(t.agentsApiTitle)}</h2>
+<p>${escapeHtml(t.agentsApiLede)}</p>
+${facts([
+  [t.agentsEndpoint, `<a href="${API_PATH}">${code(SITE_URL + API_PATH)}</a>`],
+  [t.agentsApiSpec, `<a href="${OPENAPI_PATH}">${code(OPENAPI_PATH)}</a>`],
+])}
+<p>${escapeHtml(t.agentsApiExamples)}</p>
+<ul class="file-list">
+${TOOLS.map((tool) => `<li><a href="${escapeHtml(exampleAddress(tool))}">${code(`GET ${exampleAddress(tool)}`)}</a><span${lang === "en" ? "" : ' lang="en"'}>${escapeHtml(tool.title)}</span></li>`).join("\n")}
+</ul>
+<p class="agents-note">${escapeHtml(t.agentsApiNote)}</p>
 </section>
 <section class="section" aria-labelledby="files-heading">
 <h2 id="files-heading">${escapeHtml(t.agentsFilesTitle)}</h2>
@@ -2054,10 +2540,18 @@ async function main(): Promise<void> {
   write("data/graph.json", publicGraph(corpus));
   for (const term of corpus.terms)
     write(`data/terms/${term.slug}.json`, termData(corpus, term.slug));
+  checkToolExamples(corpus);
   for (const site of sites) {
     write(url(site.lang, "/llms.txt").slice(1), llmsText(site, corpus));
     write(url(site.lang, "/llms-full.txt").slice(1), llmsFullText(site));
+    for (const e of entries)
+      write(url(site.lang, `/${e.slug}.md`).slice(1), termMarkdown(site, e));
   }
+  write(OPENAPI_PATH.slice(1), openApi());
+  write(SERVER_CARD_PATH.slice(1), serverCard());
+  const skill = skillFile(entries, sections);
+  write(SKILL_PATH.slice(1), skill);
+  write(SKILLS_INDEX_PATH.slice(1), skillsIndex(skill, entries.length));
   write("sitemap.xml", sitemap(entries));
   write(
     "robots.txt",

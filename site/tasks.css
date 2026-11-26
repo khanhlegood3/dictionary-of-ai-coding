@@ -243,7 +243,7 @@
 
 .tk-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin: 28px 0 0;
   padding: 0;
@@ -294,7 +294,8 @@
   background: var(--tk-done);
 }
 
-.tk-stat--pending .tk-stat__label::before {
+.tk-stat--pending .tk-stat__label::before,
+.tk-stat--pulls .tk-stat__label::before {
   border-radius: 2px;
 }
 
@@ -332,6 +333,10 @@
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--muted);
+}
+
+.tk-panel__action {
+  margin-left: auto;
 }
 
 .tk-notice {
@@ -497,6 +502,149 @@
   white-space: nowrap;
 }
 
+.tk-pill--draft {
+  background: var(--line);
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------- brief for an agent */
+
+.tk-task__actions {
+  margin-top: 8px;
+}
+
+.tk-brief {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tk-brief:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+.tk-brief.is-copied {
+  border-color: var(--tk-done);
+  color: var(--tk-done);
+}
+
+/* ----------------------------------------------------------- pull requests */
+
+.tk-pulls {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-pull {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px 14px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 0.9375rem;
+}
+
+.tk-pull__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tk-pull__who,
+.tk-pull__into {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.tk-branch {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+a.tk-branch {
+  text-decoration: none;
+}
+
+a.tk-branch:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.tk-fold {
+  border-top: 1px solid var(--line);
+}
+
+.tk-fold > summary {
+  padding: 12px 18px;
+  font-size: 0.875rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tk-fold > summary:hover {
+  color: var(--ink);
+}
+
+.tk-fold__body {
+  padding: 0 18px 16px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.tk-fold__body p {
+  margin: 0 0 12px;
+}
+
+.tk-fold__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.tk-fold__body .tk-fold__note {
+  margin: 12px 0 0;
+}
+
+.tk-branches {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-branches__item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.tk-branches__by {
+  font-size: 0.8125rem;
+}
+
 /* --------------------------------------------------------------- decisions */
 
 .tk-adrs {
@@ -638,8 +786,40 @@
     margin-top: 22px;
   }
 
+  /* Five numbers in two columns: the last one takes the whole row. */
+  .tk-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
   .tk-stat {
     padding: 14px;
+  }
+
+  .tk-brief {
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .tk-pull {
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 14px 16px;
+  }
+
+  .tk-pull__main {
+    flex: 0 0 100%;
+  }
+
+  .tk-pull .tk-when {
+    margin-left: auto;
+  }
+
+  .tk-fold > summary {
+    padding: 12px 16px;
+  }
+
+  .tk-fold__body {
+    padding: 0 16px 14px;
   }
 
   .tk-stat__value {
@@ -724,6 +904,9 @@
 @media print {
   .tk-side,
   .tk-actions,
+  .tk-task__actions,
+  .tk-panel__action,
+  #tk-branches,
   #tk-refresh {
     display: none;
   }
