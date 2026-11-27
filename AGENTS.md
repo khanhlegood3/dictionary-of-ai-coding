@@ -71,7 +71,8 @@ The checks above still run, on GitHub:
 ## Working on an issue
 
 - Work on a branch of its own and open a pull request into `main`. Write
-  `Closes #<number>` in its description.
+  `Closes #<number>` in its description. When you cannot open it yourself,
+  give the owner the link that opens it, and the text for its description.
 - The owner merges. Do not merge your own pull request.
 - When the issue does not say enough to do the work, ask in the issue. Do not
   guess.

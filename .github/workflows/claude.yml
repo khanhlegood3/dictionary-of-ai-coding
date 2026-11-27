@@ -1,0 +1,74 @@
+name: Claude
+
+# Runs Claude Code when the owner or a collaborator writes "@claude" in an
+# issue, a comment or a review. Claude pushes a branch and answers with a link
+# to open the pull request. It does not merge. See internal/adr/0010.
+#
+# Needs, once:
+#   1. The Claude GitHub App on this repository: https://github.com/apps/claude
+#   2. One repository secret: CLAUDE_CODE_OAUTH_TOKEN (made by running
+#      "claude setup-token") or ANTHROPIC_API_KEY.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened]
+
+# One run at a time for each issue or pull request.
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # The action itself refuses anyone without write access. This check is the
+    # same rule one step earlier: for anyone else the job, and with it the
+    # secret, never starts.
+    if: |
+      (github.event_name == 'issue_comment' &&
+        contains(github.event.comment.body, '@claude') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' &&
+        contains(github.event.comment.body, '@claude') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' &&
+        contains(github.event.review.body, '@claude') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues' &&
+        (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read # Lets Claude read the result of the checks on a pull request.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies, so Claude can run the checks
+        run: npm ci --no-audit --no-fund
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Whichever of the two secrets exists is used.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The repository is public, so anyone can comment. Claude is given
+          # the owner's comments and its own, and nobody else's.
+          include_comments_by_actor: ${{ github.repository_owner }},claude[bot]
+          # The checks of AGENTS.md, and nothing wider.
+          claude_args: |
+            --allowedTools "Bash(npm ci),Bash(npm run generate),Bash(npm run build),Bash(npm run check:mcp),Bash(npx tsc:*),Bash(npx prettier:*)"
