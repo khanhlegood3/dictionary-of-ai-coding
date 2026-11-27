@@ -88,7 +88,8 @@ Nguồn §4 gọi cơ chế này là KAU.
   theo giá cao nhất.
 - Mỗi khi tổng lượng mua lấp đầy một bậc, giá hạ cho mọi người đã mua, kể cả
   người mua đầu tiên. Phần chênh được trả lại khi chiến dịch đóng.
-- Studio nhận 30% ngay để làm bản tiếp theo. 70% còn lại bị giữ cho đến khi
+- Studio nhận 30% "ngay" để làm bản tiếp theo. Nguồn không ghi thời điểm;
+  bản nháp này hiểu là khi chiến dịch đóng, vì lúc đó giá mới chốt. 70% còn lại bị giữ cho đến khi
   giao hàng xong.
 - Để không ai có lãi khi tự mua thêm cho đủ bậc, mỗi ví bị giới hạn số gói,
   và mức giảm giữa hai bậc liền nhau phải thoả:
