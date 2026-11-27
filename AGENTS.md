@@ -52,6 +52,22 @@ npm run check:mcp           # needs the build above
 
 All of them must pass. The same checks run on every pull request.
 
+## When you cannot run commands
+
+An agent that works through the GitHub MCP server from a chat has no shell.
+The checks above still run, on GitHub:
+
+- Open the pull request as a draft. The checks "Site" and "README freshness"
+  run the same commands on it.
+- Read the result of the checks. Fix and push until both pass, then mark the
+  pull request ready for review.
+- Through that server a file is replaced whole. `site/build.ts` and
+  `site/strings.ts` are long. If you cannot send one back complete, with every
+  line you did not mean to change unchanged, stop and say so in the issue.
+- A change to `dictionary/` or `internal/Curriculum.md` needs
+  `npm run generate`, which you cannot run. Say so in the pull request, and
+  leave `README.md` alone.
+
 ## Working on an issue
 
 - Work on a branch of its own and open a pull request into `main`. Write
