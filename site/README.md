@@ -202,6 +202,23 @@ as text to paste into an agent. The steps are `tasksBriefSteps` in
 which holds the rules and the checks to run. The page cannot assign the issue or
 set a label: it holds no token.
 
+**Giving an issue to Claude on GitHub.** Write a comment on the issue that
+contains `@claude`, such as `@claude do this issue`. The workflow
+`.github/workflows/claude.yml` then runs Claude Code. It pushes a branch and
+answers in the issue with a link that opens the pull request. See
+[ADR 0010](../internal/adr/0010-claude-works-on-issues-from-a-github-workflow.md).
+
+It needs two things, set up once by the owner:
+
+1. The Claude GitHub App installed on the repository, from
+   <https://github.com/apps/claude>.
+2. One secret under Settings, Secrets and variables, Actions:
+   `CLAUDE_CODE_OAUTH_TOKEN`, made by running `claude setup-token` on a
+   computer with Claude Code, or `ANTHROPIC_API_KEY`.
+
+Only the owner and collaborators can start it, and Claude is shown only the
+owner's comments.
+
 **Pull requests.** The page lists the open pull requests, the oldest first,
 and counts them in a number card. The five most recently merged are under
 "Merged recently". A pull request is reviewed and merged on GitHub. The branch
@@ -401,6 +418,7 @@ fails when the server's version differs from `SERVER.version` in the checkout.
 | `site.yml`                        | Every pull request, every push to `main` | Typecheck, formatting, build, `check:mcp` |
 | `mcp-live.yml`                    | Every day, or by hand           | `check:mcp` against production                  |
 | `publish-registry.yml`            | By hand only                    | Publishes `server.json` to the MCP Registry     |
+| `claude.yml`                      | When the owner writes `@claude` | Runs Claude Code on the issue or pull request   |
 
 ### Listing in the MCP Registry
 
