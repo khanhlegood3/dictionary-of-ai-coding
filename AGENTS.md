@@ -4,6 +4,9 @@ This repository holds a dictionary of AI coding terms and the website built
 from it, <https://ai9k.vercel.app>. The site is in Vietnamese at `/` and in
 English at `/en`.
 
+It also holds the management of the Game9K project, under `game9k/` (ADR 0011).
+Read `game9k/README.md` before you work on an issue with the label `game9k`.
+
 ## Where things are
 
 | Path                     | What it is                                                         |
@@ -15,6 +18,7 @@ English at `/en`.
 | `api/mcp.ts`             | The MCP server and the HTTP API. The only code that runs on Vercel |
 | `server.json`            | The listing of the MCP server for the MCP Registry                 |
 | `internal/adr/`          | The decision records                                               |
+| `game9k/`                | The Game9K project: process, research, carried-over material       |
 | `README.md`              | Generated. Never edit it by hand                                   |
 
 ## Rules
@@ -36,6 +40,10 @@ English at `/en`.
 - **Decisions.** Read the records in `internal/adr/` that touch your change. A
   change that goes against an accepted record needs a new record. The front
   matter of a record is described in `site/README.md`.
+- **Game9K.** `game9k/PROCESS.md` has the phases and the gates. Do not edit or
+  format a file in `game9k/sources/`. A figure you write names its source; a
+  figure with no source is marked "chưa có nguồn". Never write that a phase
+  gate is passed: the owner passes it by merging the pull request.
 - **Scope.** Do the issue you were given. Note other problems you find in the
   pull request. Do not fix them in the same change.
 
