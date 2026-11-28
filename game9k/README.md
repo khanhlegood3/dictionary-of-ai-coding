@@ -17,6 +17,7 @@ thật; việc đầu tiên là đợt thử có thu tiền trong
 | ------------------------- | ----------------------------------------------------------- |
 | `PROCESS.md`              | Cách dự án chạy: sáu pha, cổng, vai của người và của agent  |
 | `01-requirements/` | Đầu ra của pha P01. `PRD.md` đã duyệt; `ho-chieu-goi-von.md` là bản nháp |
+| `02-ux/` | Đầu ra của pha P02: màn hình mẫu, theme Hum. Đọc `02-ux/README.md` |
 | `sources/`                | Tài liệu mang sang, giữ nguyên văn. Đọc `sources/README.md` |
 | `research/`               | Phân tích do agent viết, chưa phải quyết định               |
 | `../internal/adr/`        | Quyết định, chung dãy số với từ điển                        |
@@ -25,14 +26,16 @@ thật; việc đầu tiên là đợt thử có thu tiền trong
 
 ## Sáu pha
 
-Pha P01 đã qua cổng ngày 2026-11-28 (pull request #44). Các pha sau chưa qua
-cổng. Cột "Bản nháp có sẵn" liệt kê thứ đã làm ở
+Pha P01 đã qua cổng ngày 2026-11-28 (pull request #44). Pha P02 bắt đầu ngày
+2026-11-28 theo lệnh của chủ dự án
+([ADR 0014](../internal/adr/0014-game9k-screens-of-phase-p02-are-static-pages-in-the-hum-theme.md)).
+Các pha sau chưa qua cổng. Cột "Bản nháp có sẵn" liệt kê thứ đã làm ở
 nơi khác. Chúng là đầu vào và chưa được thẩm định ở đây.
 
 | Pha | Đầu ra                               | Bản nháp có sẵn                                                                | Trạng thái     |
 | --- | ------------------------------------ | ------------------------------------------------------------------------------ | -------------- |
 | P01 | Bản yêu cầu sản phẩm, backlog        | `GameFun/docs/PRD.md`, whitepaper, `sources/kien-truc-kvu-kau.md`, `01-requirements/ho-chieu-goi-von.md`              | Qua cổng 2026-11-28 (#44) |
-| P02 | Màn hình được duyệt                  | <https://game9k.vercel.app> (ghi "Prototype P02 · dữ liệu mô phỏng")           | Chưa qua cổng  |
+| P02 | Màn hình được duyệt                  | <https://game9k.vercel.app> (ghi "Prototype P02 · dữ liệu mô phỏng")           | Đang làm: 2 trên 4 luồng có màn hình (`02-ux/`) |
 | P03 | Hợp đồng API, mô hình dữ liệu        | `GameFun/docs/02-database-schema.md`, `03-api-specification.md`                | Chưa qua cổng  |
 | P04 | Mã chạy được, có kiểm thử            | `khanhlegood1/Game9K-Starter-Kit`, <https://game9k-starter-kit-black.vercel.app> | Chưa qua cổng |
 | P05 | Yêu cầu phi chức năng, mô hình đe doạ | `GameFun/docs/05-c4-architecture-and-nfr.md`                                   | Chưa qua cổng  |

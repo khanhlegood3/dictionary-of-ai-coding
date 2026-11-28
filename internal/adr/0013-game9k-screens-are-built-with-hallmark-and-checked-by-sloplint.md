@@ -54,10 +54,15 @@ this record.
   from their pictures. The owner picks. `game9k/research/hallmark.md` lists the
   three that were dealt.
 - **When P02 starts.** This record does not start the phase.
+
 - **Whether the check runs in CI.** No Game9K screen exists yet, so there is
   nothing for a workflow to check.
 - **The framework of the real application** (issue #29). Hallmark's output is
   plain HTML and CSS, which is enough for approving screens in P02.
+
+The owner decided the first two on 2026-11-28: the theme is Hum and P02 has
+started. See
+[ADR 0014](0014-game9k-screens-of-phase-p02-are-static-pages-in-the-hum-theme.md).
 
 ## Consequences
 

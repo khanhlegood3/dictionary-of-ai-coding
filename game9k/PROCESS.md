@@ -42,7 +42,15 @@ Theo
 - Mỗi vùng tải dữ liệu được vẽ đủ bốn trạng thái: đang tải, trống, lỗi, đầy.
 - Dữ liệu mẫu trên màn hình phải ghi rõ là dữ liệu mẫu.
 
-Cách chạy `sloplint` nằm ở `research/hallmark.md`.
+Theo
+[ADR 0014](../internal/adr/0014-game9k-screens-of-phase-p02-are-static-pages-in-the-hum-theme.md):
+
+- Theme là Hum, do chủ dự án chọn.
+- Mỗi màn hình là một tệp HTML tĩnh trong `02-ux/`, và bản dựng của trang đưa
+  nó lên `/game9k/02-ux/` để mỗi pull request có bản xem thử.
+
+Cách chạy `sloplint` nằm ở `research/hallmark.md`. Kết quả từng lần chạy nằm ở
+`02-ux/README.md`.
 
 ## Một cổng diễn ra thế nào
 

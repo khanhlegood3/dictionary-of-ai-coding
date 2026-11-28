@@ -101,6 +101,23 @@ const SUPABASE_FILE = "supabase-js.js";
 const FONT_FILES = ["latin", "latin-ext", "vietnamese"].map(
   (subset) => `jetbrains-mono-${subset}-wght-normal.woff2`
 );
+// Every page is set in Lora and Be Vietnam Pro (ADR 0015). site/fonts.css
+// names the files; the build copies them out of these two npm packages.
+const TEXT_FONT_PACKAGES = [
+  { prefix: "lora-", dir: ["@fontsource-variable", "lora"], licence: "Lora" },
+  {
+    prefix: "be-vietnam-pro-",
+    dir: ["@fontsource", "be-vietnam-pro"],
+    licence: "Be-Vietnam-Pro",
+  },
+];
+// Fetched early on every page but /learn, which is set in JetBrains Mono:
+// the two faces at their usual weight.
+const PRELOAD_FONTS = (lang: Lang): string[] =>
+  (lang === "vi" ? ["latin", "vietnamese"] : ["latin"]).flatMap((subset) => [
+    `lora-${subset}-wght-normal.woff2`,
+    `be-vietnam-pro-${subset}-400-normal.woff2`,
+  ]);
 
 const SECTION_RE = /^## Section (\d+) — (.+)$/;
 const LINK_RE = /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g;
@@ -115,6 +132,7 @@ const RESERVED_SLUGS = new Set([
   "curriculum",
   "data",
   "en",
+  "game9k",
   "learn",
   "tasks",
 ]);
@@ -575,6 +593,13 @@ function layout(
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>${THEME_BOOT}</script>
+${(isLearn ? [] : PRELOAD_FONTS(lang))
+  .map(
+    (file) =>
+      `<link rel="preload" href="/assets/fonts/${file}" as="font" type="font/woff2" crossorigin>`
+  )
+  .join("\n")}
+<link rel="stylesheet" href="/assets/fonts.css">
 <link rel="stylesheet" href="/assets/styles.css">
 <script src="/assets/app.js" defer></script>${assets}${opts.head ? `\n${opts.head}` : ""}
 </head>
@@ -2582,6 +2607,53 @@ function write(relPath: string, content: string): void {
   writeFileSync(path, content);
 }
 
+/**
+ * Copy site/fonts.css and every font file it names to dist/assets, with the
+ * licence text of each typeface. Stops when a named file is in no package.
+ */
+function copyTextFonts(): number {
+  const css = readFileSync(join(HERE, "fonts.css"), "utf8");
+  const names = [...css.matchAll(/url\("\/assets\/fonts\/([^"]+)"\)/g)].map(
+    (m) => m[1]!
+  );
+  if (names.length === 0) fail("site/fonts.css names no font file.");
+  for (const name of names) {
+    const pack = TEXT_FONT_PACKAGES.find((p) => name.startsWith(p.prefix));
+    const from = pack
+      ? join(ROOT, "node_modules", ...pack.dir, "files", name)
+      : "";
+    if (!pack || !existsSync(from))
+      fail(
+        `site/fonts.css names ${name}, which no font package has. Run "npm ci".`
+      );
+    copyFileSync(from, join(OUT, "assets", "fonts", name));
+  }
+  for (const pack of TEXT_FONT_PACKAGES)
+    copyFileSync(
+      join(ROOT, "node_modules", ...pack.dir, "LICENSE"),
+      join(OUT, "assets", "fonts", `OFL-${pack.licence}.txt`)
+    );
+  copyFileSync(join(HERE, "fonts.css"), join(OUT, "assets", "fonts.css"));
+  return names.length;
+}
+
+/**
+ * Copy the Game9K screens of phase P02 so each pull request has a preview.
+ * They are static files, served as they are at /game9k/02-ux/<screen>.
+ * The pages carry "noindex" and are in no sitemap.
+ */
+function copyGame9kScreens(): number {
+  const from = join(ROOT, "game9k", "02-ux");
+  if (!existsSync(from)) return 0;
+  const to = join(OUT, "game9k", "02-ux");
+  mkdirSync(to, { recursive: true });
+  const files = readdirSync(from).filter((name) =>
+    /\.(html|css|js)$/.test(name)
+  );
+  for (const name of files) copyFileSync(join(from, name), join(to, name));
+  return files.filter((name) => name.endsWith(".html")).length;
+}
+
 async function main(): Promise<void> {
   const { sections, entries } = load();
   const adrs = loadAdrs();
@@ -2595,6 +2667,7 @@ async function main(): Promise<void> {
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "assets"), { recursive: true });
+  const game9kScreens = copyGame9kScreens();
   copyFileSync(join(HERE, "styles.css"), join(OUT, "assets", "styles.css"));
   copyFileSync(join(HERE, "app.js"), join(OUT, "assets", "app.js"));
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
@@ -2624,6 +2697,7 @@ async function main(): Promise<void> {
       fail(`${from} is missing. Run "npm ci" to install the font package.`);
     copyFileSync(from, join(OUT, "assets", "fonts", file));
   }
+  const textFonts = copyTextFonts();
   write("favicon.svg", FAVICON);
 
   // The files for machines come first: the /agents page lists what was written.
@@ -2698,6 +2772,10 @@ async function main(): Promise<void> {
   );
   console.log(
     `Tasks page: ${adrs.length} decision records, ${snapshot ? `${snapshot.tasks.length} issues saved` : "no saved issues"}`
+  );
+  console.log(`Typefaces: ${textFonts} font files copied to /assets/fonts`);
+  console.log(
+    `Game9K: ${game9kScreens} screens of phase P02 copied to /game9k/02-ux`
   );
 }
 

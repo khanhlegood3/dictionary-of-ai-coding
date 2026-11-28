@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Duyệt báo cáo chơi thử, bản xem thử P02 của Game9K Playtest</title>
+    <meta
+      name="description"
+      content="Màn hình người vận hành đọc, sửa và duyệt bản nháp báo cáo trước khi studio thấy nó. Bản xem thử, dữ liệu mẫu."
+    />
+    <link rel="stylesheet" href="./app.css" />
+    <script src="./preview.js" defer></script>
+    <script src="./duyet.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#noi-dung">Tới nội dung</a>
+
+    <aside class="preview" aria-label="Thông tin bản xem thử">
+      <div class="container shell preview__in">
+        <p>
+          Bản xem thử của pha P02. Mọi tên, ngày và số liệu là dữ liệu mẫu, và
+          không có gì được lưu.
+        </p>
+        <ul class="views" aria-label="Trạng thái của màn hình">
+          <li class="views__label">Trạng thái</li>
+          <li>
+            <a href="?state=draft" data-view-link="draft" aria-current="page"
+              >Bản nháp</a
+            >
+          </li>
+          <li>
+            <a href="?state=refused" data-view-link="refused">Bị từ chối</a>
+          </li>
+          <li>
+            <a href="?state=approved" data-view-link="approved">Đã duyệt</a>
+          </li>
+          <li>
+            <a href="?state=empty" data-view-link="empty">Chưa có bản nháp</a>
+          </li>
+          <li>
+            <a href="?state=loading" data-view-link="loading">Đang tải</a>
+          </li>
+          <li><a href="?state=error" data-view-link="error">Lỗi</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <header class="bar">
+      <div class="container shell bar__in">
+        <a
+          class="brand"
+          href="./duyet-bao-cao"
+          aria-label="Game9K Playtest, về đầu trang duyệt"
+          >Game9K Playtest</a
+        >
+        <span class="bar__what">Người vận hành</span>
+      </div>
+    </header>
+
+    <main id="noi-dung" class="container shell">
+      <div class="stack" data-state="draft refused">
+        <section class="head">
+          <h1>Duyệt báo cáo <span class="nowrap">Ếch Vượt Ao</span></h1>
+          <p class="lead">
+            Bản nháp do mô hình soạn từ 5 phiên chơi của 5 người.
+            <mark>Studio chưa thấy nội dung</mark>: trang của họ đang ghi “đang
+            soạn”.
+          </p>
+          <dl class="facts">
+            <div>
+              <dt>Phiên bản</dt>
+              <dd><code>9f2c41d8</code>, tám ký tự đầu của mã băm</dd>
+            </div>
+            <div>
+              <dt>Lượt chơi thử</dt>
+              <dd>Ngày 5 và 6 tháng 12 năm 2026</dd>
+            </div>
+            <div>
+              <dt>Bản nháp soạn lúc</dt>
+              <dd>21:10 ngày 6 tháng 12 năm 2026</dd>
+            </div>
+            <div>
+              <dt>Studio đang thấy</dt>
+              <dd>
+                <a href="./bao-cao?state=draft">Đang soạn</a>, chưa có nội dung
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="phat-hien">
+          <h2 id="phat-hien">Phát hiện trong bản nháp</h2>
+          <p class="section__note">
+            Mở một phát hiện để sửa câu chữ và chọn phiên chơi làm bằng chứng.
+            Thay đổi được lưu ngay.
+          </p>
+          <ol class="findings">
+            <li>
+              <details class="finding" id="phat-hien-1" data-finding="1">
+                <summary>
+                  <span class="finding__n">1</span>
+                  <span class="finding__say">3 trên 5 người dừng ở màn 2</span>
+                  <span class="finding__count">3 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <div class="field">
+                    <label for="cau-1">Câu phát hiện</label>
+                    <input
+                      class="input"
+                      type="text"
+                      id="cau-1"
+                      name="cau-1"
+                      value="3 trên 5 người dừng ở màn 2"
+                      data-say
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="giai-thich-1">Giải thích</label>
+                    <textarea
+                      class="input"
+                      id="giai-thich-1"
+                      name="giai-thich-1"
+                      rows="2"
+                    >
+Ba người không qua được màn 2. Một người nói không biết phải nhảy lên lá sen nào, một người rơi xuống nước bốn lần rồi bỏ, một người không thấy nút chơi lại.</textarea
+                    >
+                  </div>
+                  <fieldset class="evidence">
+                    <legend>Phiên chơi làm bằng chứng</legend>
+                    <table class="table table--pick">
+                      <thead>
+                        <tr>
+                          <th scope="col">Dùng làm bằng chứng</th>
+                          <th scope="col">Người chơi</th>
+                          <th scope="col">Thời lượng</th>
+                          <th scope="col">Mốc xa nhất</th>
+                          <th scope="col">Lỗi của game</th>
+                          <th scope="col">Nhận xét</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-1"
+                                value="1"
+                              />
+                              Phiên 1</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi A
+                          </td>
+                          <td data-label="Thời lượng" class="num">6:12</td>
+                          <td data-label="Mốc xa nhất">Màn 4</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-1"
+                                value="2"
+                                checked
+                              />
+                              Phiên 2</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi B
+                          </td>
+                          <td data-label="Thời lượng" class="num">2:48</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            1 lỗi<code class="err"
+                              >TypeError: Cannot read properties of undefined
+                              (reading 'x')</code
+                            ><span class="none"
+                              >game.js dòng 214, lúc 2:31</span
+                            >
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-1"
+                                value="3"
+                                checked
+                              />
+                              Phiên 3</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi C
+                          </td>
+                          <td data-label="Thời lượng" class="num">4:00</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-1"
+                                value="4"
+                                checked
+                              />
+                              Phiên 4</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi D
+                          </td>
+                          <td data-label="Thời lượng" class="num">3:05</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Không thấy nút chơi lại.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-1"
+                                value="5"
+                              />
+                              Phiên 5</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi E
+                          </td>
+                          <td data-label="Thời lượng" class="num">7:40</td>
+                          <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Nhạc hay. Muốn có thêm màn.”
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </fieldset>
+                  <div class="tools">
+                    <button type="button" class="btn" data-remove>
+                      Bỏ phát hiện 1
+                    </button>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li>
+              <details class="finding" id="phat-hien-2" data-finding="2">
+                <summary>
+                  <span class="finding__n">2</span>
+                  <span class="finding__say"
+                    >1 trên 5 phiên chơi có lỗi của game</span
+                  >
+                  <span class="finding__count">1 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <div class="field">
+                    <label for="cau-2">Câu phát hiện</label>
+                    <input
+                      class="input"
+                      type="text"
+                      id="cau-2"
+                      name="cau-2"
+                      value="1 trên 5 phiên chơi có lỗi của game"
+                      data-say
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="giai-thich-2">Giải thích</label>
+                    <textarea
+                      class="input"
+                      id="giai-thich-2"
+                      name="giai-thich-2"
+                      rows="2"
+                    >
+Lỗi xảy ra ở màn 2, trên Safari với màn hình điện thoại. Phiên chơi đó cũng là phiên ngắn nhất.</textarea
+                    >
+                  </div>
+                  <fieldset class="evidence">
+                    <legend>Phiên chơi làm bằng chứng</legend>
+                    <table class="table table--pick">
+                      <thead>
+                        <tr>
+                          <th scope="col">Dùng làm bằng chứng</th>
+                          <th scope="col">Người chơi</th>
+                          <th scope="col">Thời lượng</th>
+                          <th scope="col">Mốc xa nhất</th>
+                          <th scope="col">Lỗi của game</th>
+                          <th scope="col">Nhận xét</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-2"
+                                value="1"
+                              />
+                              Phiên 1</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi A
+                          </td>
+                          <td data-label="Thời lượng" class="num">6:12</td>
+                          <td data-label="Mốc xa nhất">Màn 4</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-2"
+                                value="2"
+                                checked
+                              />
+                              Phiên 2</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi B
+                          </td>
+                          <td data-label="Thời lượng" class="num">2:48</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            1 lỗi<code class="err"
+                              >TypeError: Cannot read properties of undefined
+                              (reading 'x')</code
+                            ><span class="none"
+                              >game.js dòng 214, lúc 2:31</span
+                            >
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-2"
+                                value="3"
+                              />
+                              Phiên 3</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi C
+                          </td>
+                          <td data-label="Thời lượng" class="num">4:00</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-2"
+                                value="4"
+                              />
+                              Phiên 4</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi D
+                          </td>
+                          <td data-label="Thời lượng" class="num">3:05</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Không thấy nút chơi lại.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-2"
+                                value="5"
+                              />
+                              Phiên 5</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi E
+                          </td>
+                          <td data-label="Thời lượng" class="num">7:40</td>
+                          <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Nhạc hay. Muốn có thêm màn.”
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </fieldset>
+                  <div class="tools">
+                    <button type="button" class="btn" data-remove>
+                      Bỏ phát hiện 2
+                    </button>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li>
+              <details class="finding" id="phat-hien-3" data-finding="3">
+                <summary>
+                  <span class="finding__n">3</span>
+                  <span class="finding__say"
+                    >2 người qua được màn 2 đều chơi trên 6 phút</span
+                  >
+                  <span class="finding__count">2 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <div class="field">
+                    <label for="cau-3">Câu phát hiện</label>
+                    <input
+                      class="input"
+                      type="text"
+                      id="cau-3"
+                      name="cau-3"
+                      value="2 người qua được màn 2 đều chơi trên 6 phút"
+                      data-say
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="giai-thich-3">Giải thích</label>
+                    <textarea
+                      class="input"
+                      id="giai-thich-3"
+                      name="giai-thich-3"
+                      rows="2"
+                    >
+Hai người qua được màn 2 chơi 6:12 và 7:40. Ba người dừng ở màn 2 chơi từ 2:48 đến 4:00.</textarea
+                    >
+                  </div>
+                  <fieldset class="evidence">
+                    <legend>Phiên chơi làm bằng chứng</legend>
+                    <table class="table table--pick">
+                      <thead>
+                        <tr>
+                          <th scope="col">Dùng làm bằng chứng</th>
+                          <th scope="col">Người chơi</th>
+                          <th scope="col">Thời lượng</th>
+                          <th scope="col">Mốc xa nhất</th>
+                          <th scope="col">Lỗi của game</th>
+                          <th scope="col">Nhận xét</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-3"
+                                value="1"
+                                checked
+                              />
+                              Phiên 1</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi A
+                          </td>
+                          <td data-label="Thời lượng" class="num">6:12</td>
+                          <td data-label="Mốc xa nhất">Màn 4</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-3"
+                                value="2"
+                              />
+                              Phiên 2</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi B
+                          </td>
+                          <td data-label="Thời lượng" class="num">2:48</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            1 lỗi<code class="err"
+                              >TypeError: Cannot read properties of undefined
+                              (reading 'x')</code
+                            ><span class="none"
+                              >game.js dòng 214, lúc 2:31</span
+                            >
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-3"
+                                value="3"
+                              />
+                              Phiên 3</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi C
+                          </td>
+                          <td data-label="Thời lượng" class="num">4:00</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-3"
+                                value="4"
+                              />
+                              Phiên 4</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi D
+                          </td>
+                          <td data-label="Thời lượng" class="num">3:05</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Không thấy nút chơi lại.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-3"
+                                value="5"
+                                checked
+                              />
+                              Phiên 5</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi E
+                          </td>
+                          <td data-label="Thời lượng" class="num">7:40</td>
+                          <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Nhạc hay. Muốn có thêm màn.”
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </fieldset>
+                  <div class="tools">
+                    <button type="button" class="btn" data-remove>
+                      Bỏ phát hiện 3
+                    </button>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li>
+              <details
+                class="finding finding--bare"
+                id="phat-hien-4"
+                data-finding="4"
+                open
+              >
+                <summary>
+                  <span class="finding__n">4</span>
+                  <span class="finding__say">Màn 3 quá dễ với người chơi</span>
+                  <span class="finding__count">Chưa có bằng chứng</span>
+                </summary>
+                <div class="finding__body">
+                  <div class="field">
+                    <label for="cau-4">Câu phát hiện</label>
+                    <input
+                      class="input"
+                      type="text"
+                      id="cau-4"
+                      name="cau-4"
+                      value="Màn 3 quá dễ với người chơi"
+                      data-say
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="giai-thich-4">Giải thích</label>
+                    <textarea
+                      class="input"
+                      id="giai-thich-4"
+                      name="giai-thich-4"
+                      rows="2"
+                    >
+Người chơi qua màn 3 nhanh và không gặp khó khăn.</textarea
+                    >
+                  </div>
+                  <fieldset class="evidence">
+                    <legend>Phiên chơi làm bằng chứng</legend>
+                    <table class="table table--pick">
+                      <thead>
+                        <tr>
+                          <th scope="col">Dùng làm bằng chứng</th>
+                          <th scope="col">Người chơi</th>
+                          <th scope="col">Thời lượng</th>
+                          <th scope="col">Mốc xa nhất</th>
+                          <th scope="col">Lỗi của game</th>
+                          <th scope="col">Nhận xét</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-4"
+                                value="1"
+                              />
+                              Phiên 1</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi A
+                          </td>
+                          <td data-label="Thời lượng" class="num">6:12</td>
+                          <td data-label="Mốc xa nhất">Màn 4</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-4"
+                                value="2"
+                              />
+                              Phiên 2</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi B
+                          </td>
+                          <td data-label="Thời lượng" class="num">2:48</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            1 lỗi<code class="err"
+                              >TypeError: Cannot read properties of undefined
+                              (reading 'x')</code
+                            ><span class="none"
+                              >game.js dòng 214, lúc 2:31</span
+                            >
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-4"
+                                value="3"
+                              />
+                              Phiên 3</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi C
+                          </td>
+                          <td data-label="Thời lượng" class="num">4:00</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-4"
+                                value="4"
+                              />
+                              Phiên 4</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi D
+                          </td>
+                          <td data-label="Thời lượng" class="num">3:05</td>
+                          <td data-label="Mốc xa nhất">Màn 2</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Không thấy nút chơi lại.”
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">
+                            <label class="pick"
+                              ><input
+                                type="checkbox"
+                                name="bang-chung-4"
+                                value="5"
+                              />
+                              Phiên 5</label
+                            >
+                          </th>
+                          <td data-label="Người chơi" class="who">
+                            Người chơi E
+                          </td>
+                          <td data-label="Thời lượng" class="num">7:40</td>
+                          <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                          <td data-label="Lỗi của game">
+                            <span class="none">Không có</span>
+                          </td>
+                          <td data-label="Nhận xét" class="quote">
+                            “Nhạc hay. Muốn có thêm màn.”
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </fieldset>
+                  <div class="tools">
+                    <button type="button" class="btn" data-remove>
+                      Bỏ phát hiện 4
+                    </button>
+                  </div>
+                </div>
+              </details>
+            </li>
+          </ol>
+        </section>
+
+        <section class="approve" aria-labelledby="duyet">
+          <h2 id="duyet">Duyệt</h2>
+          <p>
+            Khi duyệt, studio đọc được báo cáo qua đường dẫn riêng. Báo cáo ghi
+            tên người duyệt và giờ duyệt.
+          </p>
+          <div
+            class="alert"
+            role="alert"
+            tabindex="-1"
+            data-refusal
+            data-state="refused"
+          >
+            <h3>Chưa duyệt được</h3>
+            <ul>
+              <li>
+                <a href="#phat-hien-4">Phát hiện 4</a> không dẫn về phiên chơi
+                nào. Hãy chọn ít nhất một phiên chơi làm bằng chứng, hoặc bỏ
+                phát hiện này.
+              </li>
+            </ul>
+          </div>
+          <form
+            class="actions"
+            method="get"
+            action="./duyet-bao-cao"
+            data-approve
+          >
+            <input type="hidden" name="state" value="approved" />
+            <button type="submit" class="btn btn--primary">
+              Duyệt và gửi studio
+            </button>
+            <a class="btn" href="./bao-cao?state=full">Xem trước báo cáo</a>
+          </form>
+        </section>
+      </div>
+
+      <section class="state" data-state="approved" hidden>
+        <h1>Báo cáo đã được duyệt</h1>
+        <p>
+          Người vận hành Game9K duyệt lúc 10:20 ngày 7 tháng 12 năm 2026. Báo
+          cáo có 3 phát hiện, dựa trên 5 phiên chơi.
+        </p>
+        <p class="state__why">
+          Từ lúc đó studio đọc được báo cáo qua đường dẫn riêng của họ.
+        </p>
+        <a class="btn btn--primary" href="./bao-cao?state=full"
+          >Mở báo cáo của studio</a
+        >
+      </section>
+
+      <section class="state" data-state="empty" hidden>
+        <h1>Chưa có bản nháp</h1>
+        <p>
+          Lượt chơi thử này chưa có phiên chơi nào xong, nên hệ thống chưa có gì
+          để soạn.
+        </p>
+        <p class="state__why">
+          Bản nháp hiện ở đây khi có phiên chơi đã xong. Trong lúc đó trang của
+          studio ghi “đang soạn”.
+        </p>
+        <a class="btn" href="?state=empty">Tải lại trang</a>
+      </section>
+
+      <section class="skel" data-state="loading" aria-busy="true" hidden>
+        <h1 class="visually-hidden">Đang tải bản nháp</h1>
+        <div>
+          <i class="skel__title"></i>
+          <i class="skel__line"></i>
+        </div>
+        <div class="skel__row"><i></i><i></i><i></i><i></i></div>
+        <div class="skel__sheets"><i></i><i></i><i></i><i></i></div>
+      </section>
+
+      <section
+        class="state state--error"
+        data-state="error"
+        role="alert"
+        hidden
+      >
+        <h1>Không tải được bản nháp</h1>
+        <p>
+          Kết nối tới máy chủ bị gián đoạn nên trang chưa lấy được nội dung. Bản
+          nháp và các thay đổi đã lưu vẫn còn nguyên.
+        </p>
+        <p class="state__why">
+          Hãy tải lại. Studio vẫn chưa thấy gì cho tới khi anh chị duyệt.
+        </p>
+        <a class="btn btn--primary" href="?state=draft">Tải lại</a>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="container shell foot__in">
+        <p>
+          Game9K Playtest. Không báo cáo nào tới studio mà chưa qua người duyệt.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
