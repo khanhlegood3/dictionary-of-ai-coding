@@ -4,8 +4,10 @@
 > chủ dự án: chuyển nội dung của `../sources/kien-truc-kvu-kau.md` sang hình ảnh
 > hộ chiếu và bỏ phần so sánh với trái phiếu chính phủ.
 >
-> Chủ dự án chưa chọn hướng Launchpad KVU–KAU (nói ngày 2026-11-27). Vì vậy
-> các cửa vốn KVU và KAU dưới đây là điểm đến có thể có, chưa phải kế hoạch.
+> Ngày 2026-11-28 chủ dự án chốt lõi của Game9K là dịch vụ chơi thử trả phí cho
+> studio (ADR 0012). Launchpad KVU–KAU không được chọn. Vì vậy phần "con dấu"
+> dưới đây mô tả thứ lõi đó tạo ra, còn các cửa vốn KVU và KAU là điểm đến có
+> thể có, không phải việc đã lên kế hoạch.
 >
 > Mọi con số trong tài liệu này lấy từ tài liệu nguồn, ghi theo mục của nó
 > ("nguồn §2"). Chưa con số nào được kiểm lại bằng phép đo ở kho này.

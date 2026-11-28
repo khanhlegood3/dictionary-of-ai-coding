@@ -4,6 +4,8 @@ Phân tích do agent viết ngày 2026-11-28, theo yêu cầu của chủ dự �
 đường dẫn và một ảnh chụp màn hình, rồi áp vào lựa chọn ở issue #10 giữa
 "Playtest B2B làm lõi" và "Launchpad KVU–KAU".
 
+**Đã chốt ngày 2026-11-28:** chủ dự án chọn "Playtest B2B làm lõi", ghi ở ADR 0012. Phần dưới giữ nguyên như lúc viết.
+
 Đây là đề xuất. Quyết định là của chủ dự án. Agent không chạy mô hình nào,
 không chơi game nào và không hỏi studio nào.
 
