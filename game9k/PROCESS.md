@@ -31,6 +31,19 @@ duyệt. Khi có thêm người, sửa bảng này bằng một ADR.
 
 Từ P03 trở đi, frontend và backend làm song song dựa trên hợp đồng API.
 
+## Màn hình ở pha P02
+
+Theo
+[ADR 0013](../internal/adr/0013-game9k-screens-are-built-with-hallmark-and-checked-by-sloplint.md):
+
+- Màn hình mới được dựng theo skill thiết kế Hallmark, ghim ở commit `04977e1`.
+- Trước pull request cổng, mỗi màn hình được kiểm bằng `sloplint`. Mọi `FAIL`
+  được sửa. Mỗi `REFLEX` được sửa hoặc ghi lý do giữ lại.
+- Mỗi vùng tải dữ liệu được vẽ đủ bốn trạng thái: đang tải, trống, lỗi, đầy.
+- Dữ liệu mẫu trên màn hình phải ghi rõ là dữ liệu mẫu.
+
+Cách chạy `sloplint` nằm ở `research/hallmark.md`.
+
 ## Một cổng diễn ra thế nào
 
 1. Agent làm đầu ra của pha trên một nhánh và mở pull request có nhãn `gate`
