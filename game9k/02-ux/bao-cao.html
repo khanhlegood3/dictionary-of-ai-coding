@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>
+      Báo cáo chơi thử cho studio, bản xem thử P02 của Game9K Playtest
+    </title>
+    <meta
+      name="description"
+      content="Màn hình studio đọc báo cáo chơi thử: mỗi phát hiện mở ra các phiên chơi làm bằng chứng. Bản xem thử, dữ liệu mẫu."
+    />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=chillax@500,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./app.css" />
+    <script src="./preview.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#noi-dung">Tới nội dung</a>
+
+    <aside class="preview" aria-label="Thông tin bản xem thử">
+      <div class="container shell preview__in">
+        <p>
+          Bản xem thử của pha P02. Mọi tên, ngày và số liệu trên trang là dữ
+          liệu mẫu.
+        </p>
+        <ul class="views" aria-label="Trạng thái của màn hình">
+          <li class="views__label">Trạng thái</li>
+          <li>
+            <a href="?state=full" data-view-link="full" aria-current="page"
+              >Đã duyệt</a
+            >
+          </li>
+          <li><a href="?state=draft" data-view-link="draft">Đang soạn</a></li>
+          <li>
+            <a href="?state=loading" data-view-link="loading">Đang tải</a>
+          </li>
+          <li><a href="?state=error" data-view-link="error">Lỗi</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <header class="bar">
+      <div class="container shell bar__in">
+        <a
+          class="brand"
+          href="./bao-cao"
+          aria-label="Game9K Playtest, về đầu báo cáo"
+          >Game9K Playtest</a
+        >
+        <span class="bar__what">Báo cáo gửi studio</span>
+      </div>
+    </header>
+
+    <main id="noi-dung" class="container shell">
+      <div class="stack" data-state="full">
+        <section class="head">
+          <h1>Báo cáo chơi thử <span class="nowrap">Ếch Vượt Ao</span></h1>
+          <p class="lead">
+            Dựa trên <mark>5 phiên chơi của 5 người</mark>. Với cỡ mẫu này, các
+            con số là quan sát, không phải thống kê.
+          </p>
+          <dl class="facts">
+            <div>
+              <dt>Phiên bản</dt>
+              <dd><code>9f2c41d8</code>, tám ký tự đầu của mã băm</dd>
+            </div>
+            <div>
+              <dt>Lượt chơi thử</dt>
+              <dd>Ngày 5 và 6 tháng 12 năm 2026</dd>
+            </div>
+            <div>
+              <dt>Người duyệt</dt>
+              <dd>Người vận hành Game9K</dd>
+            </div>
+            <div>
+              <dt>Duyệt lúc</dt>
+              <dd>10:20 ngày 7 tháng 12 năm 2026</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="so-do">
+          <h2 id="so-do">Số đo chính</h2>
+          <dl class="stats">
+            <div>
+              <dt>phiên chơi đã xong</dt>
+              <dd>5</dd>
+            </div>
+            <div>
+              <dt>
+                thời lượng trung vị,
+                <a class="nowrap" href="#cach-tinh">cách tính</a>
+              </dt>
+              <dd>4:00 <small>phút</small></dd>
+            </div>
+            <div>
+              <dt>người dừng ở màn 2</dt>
+              <dd>3 <small>trên 5</small></dd>
+            </div>
+            <div>
+              <dt>phiên chơi có lỗi của game</dt>
+              <dd>1 <small>trên 5</small></dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="phat-hien">
+          <h2 id="phat-hien">Phát hiện</h2>
+          <p class="section__note">
+            Mỗi phát hiện mở ra các phiên chơi làm bằng chứng cho nó.
+          </p>
+          <ol class="findings">
+            <li>
+              <details class="finding" id="phat-hien-1" open>
+                <summary>
+                  <span class="finding__n">1</span>
+                  <span class="finding__say">3 trên 5 người dừng ở màn 2</span>
+                  <span class="finding__count">3 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <p>
+                    Ba người không qua được màn 2. Một người nói không biết phải
+                    nhảy lên lá sen nào, một người rơi xuống nước bốn lần rồi
+                    bỏ, một người không thấy nút chơi lại.
+                  </p>
+                  <table class="table">
+                    <caption class="visually-hidden">
+                      Các phiên chơi làm bằng chứng cho phát hiện 1
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Phiên chơi</th>
+                        <th scope="col">Người chơi</th>
+                        <th scope="col">Thời lượng</th>
+                        <th scope="col">Mốc xa nhất</th>
+                        <th scope="col">Lỗi của game</th>
+                        <th scope="col">Nhận xét</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row"><a href="#phien-2">Phiên 2</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi B
+                        </td>
+                        <td data-label="Thời lượng" class="num">2:48</td>
+                        <td data-label="Mốc xa nhất">Màn 2</td>
+                        <td data-label="Lỗi của game">
+                          1 lỗi<code class="err"
+                            >TypeError: Cannot read properties of undefined
+                            (reading 'x')</code
+                          ><span class="none">game.js dòng 214, lúc 2:31</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                        </td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><a href="#phien-3">Phiên 3</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi C
+                        </td>
+                        <td data-label="Thời lượng" class="num">4:00</td>
+                        <td data-label="Mốc xa nhất">Màn 2</td>
+                        <td data-label="Lỗi của game">
+                          <span class="none">Không có</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                        </td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><a href="#phien-4">Phiên 4</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi D
+                        </td>
+                        <td data-label="Thời lượng" class="num">3:05</td>
+                        <td data-label="Mốc xa nhất">Màn 2</td>
+                        <td data-label="Lỗi của game">
+                          <span class="none">Không có</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Không thấy nút chơi lại.”
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </li>
+            <li>
+              <details class="finding" id="phat-hien-2">
+                <summary>
+                  <span class="finding__n">2</span>
+                  <span class="finding__say"
+                    >1 trên 5 phiên chơi có lỗi của game</span
+                  >
+                  <span class="finding__count">1 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <p>
+                    Lỗi xảy ra ở màn 2, trên Safari với màn hình điện thoại.
+                    Phiên chơi đó cũng là phiên ngắn nhất.
+                  </p>
+                  <table class="table">
+                    <caption class="visually-hidden">
+                      Các phiên chơi làm bằng chứng cho phát hiện 2
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Phiên chơi</th>
+                        <th scope="col">Người chơi</th>
+                        <th scope="col">Thời lượng</th>
+                        <th scope="col">Mốc xa nhất</th>
+                        <th scope="col">Lỗi của game</th>
+                        <th scope="col">Nhận xét</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row"><a href="#phien-2">Phiên 2</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi B
+                        </td>
+                        <td data-label="Thời lượng" class="num">2:48</td>
+                        <td data-label="Mốc xa nhất">Màn 2</td>
+                        <td data-label="Lỗi của game">
+                          1 lỗi<code class="err"
+                            >TypeError: Cannot read properties of undefined
+                            (reading 'x')</code
+                          ><span class="none">game.js dòng 214, lúc 2:31</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </li>
+            <li>
+              <details class="finding" id="phat-hien-3">
+                <summary>
+                  <span class="finding__n">3</span>
+                  <span class="finding__say"
+                    >2 người qua được màn 2 đều chơi trên 6 phút</span
+                  >
+                  <span class="finding__count">2 phiên chơi</span>
+                </summary>
+                <div class="finding__body">
+                  <p>
+                    Hai người qua được màn 2 chơi 6:12 và 7:40. Ba người dừng ở
+                    màn 2 chơi từ 2:48 đến 4:00.
+                  </p>
+                  <table class="table">
+                    <caption class="visually-hidden">
+                      Các phiên chơi làm bằng chứng cho phát hiện 3
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Phiên chơi</th>
+                        <th scope="col">Người chơi</th>
+                        <th scope="col">Thời lượng</th>
+                        <th scope="col">Mốc xa nhất</th>
+                        <th scope="col">Lỗi của game</th>
+                        <th scope="col">Nhận xét</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row"><a href="#phien-1">Phiên 1</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi A
+                        </td>
+                        <td data-label="Thời lượng" class="num">6:12</td>
+                        <td data-label="Mốc xa nhất">Màn 4</td>
+                        <td data-label="Lỗi của game">
+                          <span class="none">Không có</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                        </td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><a href="#phien-5">Phiên 5</a></th>
+                        <td data-label="Người chơi" class="who">
+                          Người chơi E
+                        </td>
+                        <td data-label="Thời lượng" class="num">7:40</td>
+                        <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                        <td data-label="Lỗi của game">
+                          <span class="none">Không có</span>
+                        </td>
+                        <td data-label="Nhận xét" class="quote">
+                          “Nhạc hay. Muốn có thêm màn.”
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </li>
+          </ol>
+        </section>
+
+        <section aria-labelledby="phien">
+          <h2 id="phien">Tất cả phiên chơi</h2>
+          <table class="table">
+            <caption class="visually-hidden">
+              Năm phiên chơi của lượt chơi thử này
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Phiên chơi</th>
+                <th scope="col">Người chơi</th>
+                <th scope="col">Bắt đầu</th>
+                <th scope="col">Thời lượng</th>
+                <th scope="col">Mốc xa nhất</th>
+                <th scope="col">Lỗi của game</th>
+                <th scope="col">Trình duyệt, màn hình</th>
+                <th scope="col">Nhận xét</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="phien-1">
+                <th scope="row">Phiên 1</th>
+                <td data-label="Người chơi" class="who">Người chơi A</td>
+                <td data-label="Bắt đầu" class="when">5/12, 09:02</td>
+                <td data-label="Thời lượng" class="num">6:12</td>
+                <td data-label="Mốc xa nhất">Màn 4</td>
+                <td data-label="Lỗi của game">
+                  <span class="none">Không có</span>
+                </td>
+                <td data-label="Trình duyệt, màn hình">Chrome, 1920 × 1080</td>
+                <td data-label="Nhận xét" class="quote">
+                  “Màn 3 vui nhất. Màn 2 hơi khó hiểu lúc đầu.”
+                </td>
+              </tr>
+              <tr id="phien-2">
+                <th scope="row">Phiên 2</th>
+                <td data-label="Người chơi" class="who">Người chơi B</td>
+                <td data-label="Bắt đầu" class="when">5/12, 09:40</td>
+                <td data-label="Thời lượng" class="num">2:48</td>
+                <td data-label="Mốc xa nhất">Màn 2</td>
+                <td data-label="Lỗi của game">
+                  1 lỗi<code class="err"
+                    >TypeError: Cannot read properties of undefined (reading
+                    'x')</code
+                  ><span class="none">game.js dòng 214, lúc 2:31</span>
+                </td>
+                <td data-label="Trình duyệt, màn hình">Safari, 390 × 844</td>
+                <td data-label="Nhận xét" class="quote">
+                  “Tôi không biết phải nhảy lên lá sen nào ở màn 2.”
+                </td>
+              </tr>
+              <tr id="phien-3">
+                <th scope="row">Phiên 3</th>
+                <td data-label="Người chơi" class="who">Người chơi C</td>
+                <td data-label="Bắt đầu" class="when">5/12, 14:15</td>
+                <td data-label="Thời lượng" class="num">4:00</td>
+                <td data-label="Mốc xa nhất">Màn 2</td>
+                <td data-label="Lỗi của game">
+                  <span class="none">Không có</span>
+                </td>
+                <td data-label="Trình duyệt, màn hình">Chrome, 1366 × 768</td>
+                <td data-label="Nhận xét" class="quote">
+                  “Rơi xuống nước bốn lần ở màn 2 rồi bỏ.”
+                </td>
+              </tr>
+              <tr id="phien-4">
+                <th scope="row">Phiên 4</th>
+                <td data-label="Người chơi" class="who">Người chơi D</td>
+                <td data-label="Bắt đầu" class="when">5/12, 19:30</td>
+                <td data-label="Thời lượng" class="num">3:05</td>
+                <td data-label="Mốc xa nhất">Màn 2</td>
+                <td data-label="Lỗi của game">
+                  <span class="none">Không có</span>
+                </td>
+                <td data-label="Trình duyệt, màn hình">Firefox, 1536 × 864</td>
+                <td data-label="Nhận xét" class="quote">
+                  “Không thấy nút chơi lại.”
+                </td>
+              </tr>
+              <tr id="phien-5">
+                <th scope="row">Phiên 5</th>
+                <td data-label="Người chơi" class="who">Người chơi E</td>
+                <td data-label="Bắt đầu" class="when">6/12, 20:05</td>
+                <td data-label="Thời lượng" class="num">7:40</td>
+                <td data-label="Mốc xa nhất">Màn 5, hết game</td>
+                <td data-label="Lỗi của game">
+                  <span class="none">Không có</span>
+                </td>
+                <td data-label="Trình duyệt, màn hình">Chrome, 1440 × 900</td>
+                <td data-label="Nhận xét" class="quote">
+                  “Nhạc hay. Muốn có thêm màn.”
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="how" id="cach-tinh">
+            Thời lượng ghi theo phút và giây, và chỉ tính lúc thẻ game đang hiện
+            trên màn hình. Xếp năm thời lượng theo thứ tự được 2:48, 3:05, 4:00,
+            6:12 và 7:40. Số ở giữa là 4:00, nên thời lượng trung vị là 4 phút.
+          </p>
+        </section>
+
+        <p class="fee">
+          Phí của lượt chơi thử này là cố định và không đổi theo kết quả trong
+          báo cáo.
+        </p>
+      </div>
+
+      <section class="state" data-state="draft" hidden>
+        <h1>Báo cáo đang được soạn</h1>
+        <p>
+          Lượt chơi thử đã xong. Người vận hành đang đọc và duyệt báo cáo trước
+          khi gửi.
+        </p>
+        <p class="state__why">
+          Khi báo cáo được duyệt, chính đường dẫn này sẽ hiện nó. Anh chị không
+          cần làm gì thêm.
+        </p>
+        <a class="btn" href="?state=draft">Tải lại trang</a>
+      </section>
+
+      <section class="skel" data-state="loading" aria-busy="true" hidden>
+        <h1 class="visually-hidden">Đang tải báo cáo</h1>
+        <div>
+          <i class="skel__title"></i>
+          <i class="skel__line"></i>
+        </div>
+        <div class="skel__row"><i></i><i></i><i></i><i></i></div>
+        <div class="skel__sheets"><i></i><i></i><i></i></div>
+      </section>
+
+      <section
+        class="state state--error"
+        data-state="error"
+        role="alert"
+        hidden
+      >
+        <h1>Không tải được báo cáo</h1>
+        <p>
+          Kết nối tới máy chủ bị gián đoạn nên trang chưa lấy được nội dung. Báo
+          cáo của anh chị vẫn còn nguyên.
+        </p>
+        <p class="state__why">
+          Hãy tải lại. Nếu vẫn lỗi, nhắn cho người vận hành đã gửi đường dẫn
+          này.
+        </p>
+        <a class="btn btn--primary" href="?state=full">Tải lại</a>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="container shell foot__in">
+        <p>
+          Game9K Playtest. Báo cáo do người vận hành duyệt trước khi gửi studio.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

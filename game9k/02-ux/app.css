@@ -1,0 +1,658 @@
+/* Hallmark · shape: app screen · genre: playful · theme: Hum (by request)
+ * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty (report in draft), loading, error
+ * axes: light/rounded-sans/chromatic-yellow · posture: full-palette · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: E, the sandbox cannot load Chillax so every render check ran in the fallback face */
+/* Hallmark · answered F4 · the secondary button is Hum card stock on the card colour, and the pear fill is kept for the one action of a state */
+@import url("./tokens.css");
+@import url("./base.css");
+
+:root {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 0 0.25 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --control: 40px;
+  --bar: 64px;
+}
+
+body {
+  background: var(--grain), var(--color-paper);
+  font-weight: 500;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--color-accent-2);
+}
+
+mark {
+  background: color-mix(in oklab, var(--color-accent) 55%, transparent);
+  color: inherit;
+  padding: 0 var(--space-2xs);
+  border-radius: var(--space-2xs);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+code,
+.mono {
+  font-family: var(--font-outlier);
+  font-size: var(--text-sm);
+}
+
+.shell {
+  --container: 1200px;
+}
+
+.skip {
+  position: absolute;
+  left: var(--space-md);
+  top: var(--space-md);
+  z-index: var(--z-tooltip);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-stock);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  translate: 0 -200%;
+}
+
+.skip:focus-visible {
+  translate: 0 0;
+}
+
+/* The preview strip: the prototype's own chrome, not part of the product. */
+
+.preview {
+  background: var(--color-paper-3);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-sm);
+}
+
+.preview__in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-lg);
+  padding-block: var(--space-xs);
+}
+
+.preview p {
+  max-width: none;
+  color: var(--color-ink-2);
+}
+
+.views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.views__label {
+  margin-right: var(--space-xs);
+  color: var(--color-ink-2);
+}
+
+.views a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: background-color var(--dur-micro) var(--ease-snap);
+}
+
+.views a::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-2xs) * -1) 0;
+}
+
+@media (hover: hover) {
+  .views a:hover {
+    background: var(--color-rule);
+  }
+}
+
+.views a:active {
+  background: var(--color-edge);
+}
+
+.views a[aria-current="page"] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* The product's top bar. */
+
+.bar {
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.bar__in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--bar);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-display);
+  text-decoration: none;
+}
+
+.bar__what {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+main {
+  flex: 1;
+  padding-block: var(--space-xl) var(--space-3xl);
+}
+
+.stack > * + * {
+  margin-top: var(--space-xl);
+}
+
+.head h1 {
+  max-width: 32ch;
+}
+
+.head .lead {
+  margin-top: var(--space-sm);
+  max-width: 72ch;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Facts about the report: a definition list in one row. */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md) var(--space-lg);
+  margin: var(--space-lg) 0 0;
+  padding-top: var(--space-md);
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.facts dt {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.facts dd {
+  margin: var(--space-2xs) 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* The measured figures: a figure and its label, no tile. */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+  margin: var(--space-md) 0 0;
+}
+
+.stats > div {
+  padding-left: var(--space-md);
+  border-left: var(--rule-hair) solid var(--color-rule);
+}
+
+.stats dt {
+  order: 2;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.stats dd {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats small {
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.section__note {
+  margin-top: var(--space-xs);
+  color: var(--color-muted);
+}
+
+/* The signature: a finding is a sheet that opens onto its evidence. */
+
+.findings {
+  display: grid;
+  gap: var(--space-md);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  border-radius: var(--radius-card);
+  background: var(--grain), var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+.finding summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 72px;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color var(--dur-micro) var(--ease-snap);
+}
+
+.finding summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (hover: hover) {
+  .finding summary:hover {
+    background-color: var(--color-paper-2);
+  }
+}
+
+.finding summary:active {
+  background-color: var(--color-paper-3);
+}
+
+.finding__n {
+  display: grid;
+  place-items: center;
+  width: var(--control);
+  height: var(--control);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper-3);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.finding[open] .finding__n {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.finding__say {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.25;
+}
+
+.finding__count {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.finding__count::after {
+  content: ", mở để xem";
+}
+
+.finding[open] .finding__count::after {
+  content: ", đang mở";
+}
+
+.finding__body {
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+.finding:not([open]) .finding__body {
+  display: none;
+}
+
+.finding__body > p {
+  max-width: 70ch;
+  padding-top: var(--space-xs);
+}
+
+/* Tables: sentence-case heads, horizontal rules only, no outer border. */
+
+.table {
+  width: 100%;
+  margin-top: var(--space-md);
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.table th,
+.table td {
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table thead th {
+  color: var(--color-ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody th,
+.table .who,
+.table .when {
+  white-space: nowrap;
+}
+
+.table tbody th {
+  font-weight: 600;
+}
+
+.table .num {
+  white-space: nowrap;
+}
+
+.table .quote {
+  min-width: 16ch;
+}
+
+.table tr:target {
+  background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+}
+
+.err {
+  display: block;
+  margin-top: var(--space-2xs);
+  color: var(--color-error);
+  overflow-wrap: anywhere;
+}
+
+.none {
+  color: var(--color-muted);
+}
+
+.how {
+  margin-top: var(--space-md);
+  color: var(--color-ink-2);
+}
+
+.fee {
+  padding-top: var(--space-md);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  color: var(--color-ink-2);
+}
+
+/* Buttons: Hum's card stock at the app's control height. */
+
+.btn {
+  --edge: 3px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control);
+  padding: 0 var(--space-md);
+  border: 0;
+  border-radius: var(--radius-stock);
+  background: var(--grain), var(--color-card);
+  box-shadow:
+    inset 0 0 0 1px var(--color-edge),
+    0 var(--edge) 0 0 var(--color-edge);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    translate var(--dur-micro) var(--ease-snap),
+    box-shadow var(--dur-micro) var(--ease-snap);
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--space-2xs) * -1) 0;
+}
+
+@media (hover: hover) {
+  .btn:hover {
+    --edge: 4px;
+    translate: 0 -1px;
+  }
+}
+
+.btn:active {
+  --edge: 1px;
+  translate: 0 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--grain), var(--color-accent);
+  box-shadow: 0 var(--edge) 0 0 var(--color-accent-deep);
+  color: var(--color-accent-ink);
+  transition-timing-function: var(--ease-spring);
+}
+
+/* The other three states of the screen. */
+
+.state {
+  max-width: 60ch;
+}
+
+.state h1 {
+  max-width: 22ch;
+}
+
+.state p {
+  margin-top: var(--space-sm);
+}
+
+.state .btn {
+  margin-top: var(--space-lg);
+}
+
+.state__why {
+  color: var(--color-ink-2);
+}
+
+.state--error h1 {
+  color: var(--color-error);
+}
+
+.skel {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.skel i {
+  display: block;
+  border-radius: var(--radius-input);
+  background: var(--color-paper-3);
+  animation: breathe 1.4s var(--ease-in-out) infinite alternate;
+}
+
+.skel__title {
+  width: min(28rem, 80%);
+  height: var(--space-xl);
+}
+
+.skel__line {
+  width: min(36rem, 100%);
+  height: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.skel__row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+.skel__row i {
+  height: var(--space-2xl);
+}
+
+.skel__sheets {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.skel__sheets i {
+  height: 72px;
+  border-radius: var(--radius-card);
+}
+
+@keyframes breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel i {
+    animation: none;
+  }
+}
+
+.foot {
+  border-top: var(--rule-hair) solid var(--color-rule);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.foot__in {
+  padding-block: var(--space-lg);
+}
+
+.foot p {
+  max-width: none;
+}
+
+/* Under 60rem: the fact and figure rows fold to two columns. */
+
+@media (max-width: 60rem) {
+  .facts,
+  .stats,
+  .skel__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bar__what {
+    display: none;
+  }
+}
+
+/* Under 45rem: each table row restacks as a labelled block, and the row's
+   name stays first. */
+
+@media (max-width: 45rem) {
+  .finding summary {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: var(--space-md);
+  }
+
+  .finding__count {
+    grid-column: 2;
+  }
+
+  .finding__body {
+    padding: 0 var(--space-md) var(--space-md);
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+  }
+
+  .table tr {
+    padding-block: var(--space-sm);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-3xs) 0;
+    border: 0;
+  }
+
+  .table td {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    color: var(--color-muted);
+  }
+
+  .table td > * {
+    grid-column: 2;
+  }
+
+  .table tbody th {
+    font-size: var(--text-md);
+  }
+
+  .table .quote {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 30rem) {
+  .stats dd {
+    font-size: var(--text-2xl);
+  }
+}

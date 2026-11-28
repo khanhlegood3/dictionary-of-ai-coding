@@ -115,6 +115,7 @@ const RESERVED_SLUGS = new Set([
   "curriculum",
   "data",
   "en",
+  "game9k",
   "learn",
   "tasks",
 ]);
@@ -2582,6 +2583,23 @@ function write(relPath: string, content: string): void {
   writeFileSync(path, content);
 }
 
+/**
+ * Copy the Game9K screens of phase P02 so each pull request has a preview.
+ * They are static files, served as they are at /game9k/02-ux/<screen>.
+ * The pages carry "noindex" and are in no sitemap.
+ */
+function copyGame9kScreens(): number {
+  const from = join(ROOT, "game9k", "02-ux");
+  if (!existsSync(from)) return 0;
+  const to = join(OUT, "game9k", "02-ux");
+  mkdirSync(to, { recursive: true });
+  const files = readdirSync(from).filter((name) =>
+    /\.(html|css|js)$/.test(name)
+  );
+  for (const name of files) copyFileSync(join(from, name), join(to, name));
+  return files.filter((name) => name.endsWith(".html")).length;
+}
+
 async function main(): Promise<void> {
   const { sections, entries } = load();
   const adrs = loadAdrs();
@@ -2595,6 +2613,7 @@ async function main(): Promise<void> {
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "assets"), { recursive: true });
+  const game9kScreens = copyGame9kScreens();
   copyFileSync(join(HERE, "styles.css"), join(OUT, "assets", "styles.css"));
   copyFileSync(join(HERE, "app.js"), join(OUT, "assets", "app.js"));
   copyFileSync(join(HERE, "graph.js"), join(OUT, "assets", "graph.js"));
@@ -2698,6 +2717,9 @@ async function main(): Promise<void> {
   );
   console.log(
     `Tasks page: ${adrs.length} decision records, ${snapshot ? `${snapshot.tasks.length} issues saved` : "no saved issues"}`
+  );
+  console.log(
+    `Game9K: ${game9kScreens} screens of phase P02 copied to /game9k/02-ux`
   );
 }
 
