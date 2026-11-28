@@ -43,7 +43,9 @@ Read `game9k/README.md` before you work on an issue with the label `game9k`.
 - **Game9K.** `game9k/PROCESS.md` has the phases and the gates. Do not edit or
   format a file in `game9k/sources/`. A figure you write names its source; a
   figure with no source is marked "chưa có nguồn". Never write that a phase
-  gate is passed: the owner passes it by merging the pull request.
+  gate is passed: the owner passes it by merging the pull request. A new
+  Game9K screen follows ADR 0013: build it with the Hallmark skill at the
+  pinned commit, run `sloplint` on it, and label sample data as sample data.
 - **Scope.** Do the issue you were given. Note other problems you find in the
   pull request. Do not fix them in the same change.
 
