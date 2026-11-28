@@ -7,20 +7,29 @@ P02, không phải mã của ứng dụng
 
 ## Bốn luồng
 
-| Luồng trong bản yêu cầu | User story               | Màn hình             | Trạng thái            |
-| ----------------------- | ------------------------ | -------------------- | --------------------- |
-| Studio đọc báo cáo      | US-06 (#50)              | `bao-cao.html`       | Đã dựng, chờ nhận xét |
-| Người vận hành duyệt    | US-05 (#49)              | `duyet-bao-cao.html` | Đã dựng, chờ nhận xét |
-| Vào và chơi             | US-03 (#47), US-04 (#48) | Chưa có              | Chưa dựng             |
-| Nộp phiên bản           | US-01 (#45), US-02 (#46) | Chưa có              | Chưa dựng             |
+| Luồng trong bản yêu cầu | User story | Màn hình | Trạng thái |
+| --- | --- | --- | --- |
+| Gửi phiên bản | US-01 (#45) | `nop-phien-ban.html` | Đã dựng, chờ duyệt ở cổng |
+| Vào chơi | US-02 (#46), US-03 (#47), US-04 (#48) | `choi-thu.html` | Đã dựng, chờ duyệt ở cổng |
+| Người vận hành duyệt báo cáo | US-05 (#49) | `duyet-bao-cao.html` | Đã dựng, chờ duyệt ở cổng |
+| Studio đọc báo cáo | US-06 (#50) | `bao-cao.html` | Đã dựng, chờ duyệt ở cổng |
+
+Bốn luồng này là phạm vi bản yêu cầu đặt cho pha P02 (mục 12 của
+`../01-requirements/PRD.md`). Bốn user story còn lại **chưa có màn hình**:
+US-07 (#51, phí không đổi theo kết quả) và US-10 (#54, mở và theo dõi một lượt
+chơi thử) thuộc nhóm "phải có"; US-08 (#52) và US-09 (#53) thuộc nhóm "nên có".
+
+Bảng ở bản trước của tệp này ghi US-02 vào luồng gửi phiên bản. Điều đó sai:
+theo bản yêu cầu, US-02 là "người chơi thử vào chơi".
 
 Màn hình đọc báo cáo được dựng trước vì nó là thứ studio trả tiền để nhận, và
 các màn hình khác phải sinh ra đúng dữ liệu mà nó hiển thị.
 
 ## Xem ở đâu
 
-- Trên bản xem thử của pull request: `/game9k/02-ux/bao-cao` và
-  `/game9k/02-ux/duyet-bao-cao`.
+- Trên bản xem thử của pull request: `/game9k/02-ux/nop-phien-ban`,
+  `/game9k/02-ux/choi-thu`, `/game9k/02-ux/duyet-bao-cao` và
+  `/game9k/02-ux/bao-cao`.
 - Trên máy: `npm run build`, rồi `npm run preview`, rồi mở
   <http://localhost:3000/game9k/02-ux/bao-cao>.
 
@@ -67,6 +76,90 @@ Những thứ màn hình này **chưa vẽ**, vì bản yêu cầu chưa nói:
 - sửa phần "Số đo chính". Phần đó do hệ thống tính từ số đo và người vận hành
   xem qua nút "Xem trước báo cáo".
 
+### Người chơi thử vào chơi (`choi-thu`)
+
+| Địa chỉ | Trạng thái |
+| --- | --- |
+| `?state=invite` | Lời mời: việc cần làm, hai điều khoản, ô đồng ý (mặc định) |
+| `?state=playing` | Game chạy trong trang, có đồng hồ và nút kết thúc |
+| `?state=questions` | Ba câu hỏi sau phiên, kèm ba số của phiên chơi |
+| `?state=done` | Đã gửi câu trả lời |
+| `?state=failed` | Game không khởi động được |
+| `?state=closed` | Lượt chơi thử đã đóng, hoặc đường dẫn mời không còn dùng được |
+| `?state=loading` | Đang tải |
+| `?state=error` | Không tải được |
+
+Màn hình này bấm được. Các kịch bản của US-02, US-03 và US-04 thử như sau:
+
+1. Bấm "Đồng ý và vào chơi" khi chưa đánh dấu ô đồng ý: trang báo lỗi và không
+   nạp game. Khung game chỉ được nạp sau khi đồng ý.
+2. Đánh dấu rồi bấm: game mẫu chạy trong trang. Đồng hồ dừng khi chuyển sang thẻ
+   khác và chạy tiếp khi quay lại.
+3. Bấm "Gây lỗi thử" (công cụ của bản xem thử): game mẫu ném một lỗi, và phiên
+   chơi ghi thêm một lỗi.
+4. Bấm "Kết thúc phiên chơi": trang hỏi lại một lần, rồi hiện ba câu hỏi cùng
+   thời lượng, mốc xa nhất và số lỗi của chính phiên vừa chơi.
+5. Gửi khi câu đầu còn trống: trang báo lỗi ở câu đó. Trả lời rồi gửi: trang
+   cảm ơn.
+
+Game chạy trong một `iframe` có `sandbox="allow-scripts"`, không có
+`allow-same-origin`. Vì vậy game ở một nguồn riêng và không đọc được cookie, bộ
+nhớ hay trang của cổng (FR-02, kịch bản thứ ba của US-01). Game báo mốc và lỗi
+cho trang bằng `postMessage`.
+
+`choi-thu.js` đóng vai máy chủ và chứa game mẫu. Game mẫu ba màn do agent viết
+để có thứ chạy trong khung; nó không phải game của studio nào.
+
+Những thứ màn hình này **chưa vẽ** hoặc tự đặt ra, vì bản yêu cầu chưa nói:
+
+- lời văn của hai điều khoản. Đây là chữ mẫu của agent, chưa ai có chuyên môn
+  pháp lý đọc. Câu "từ 18 tuổi trở lên" lấy từ GĐ-7;
+- ba câu hỏi sau phiên. FR-03 nói người vận hành đặt danh sách câu hỏi; màn
+  hình vẽ ba câu mẫu và tự chọn câu đầu là bắt buộc;
+- giới hạn 8 giây trước khi coi game là "không khởi động được";
+- việc người chơi đóng thẻ giữa phiên, quay lại một đường dẫn đã dùng, hay
+  chơi lần thứ hai;
+- quay màn hình. Bản yêu cầu để việc đó ngoài hệ thống.
+
+### Người vận hành gửi phiên bản (`nop-phien-ban`)
+
+| Địa chỉ | Trạng thái |
+| --- | --- |
+| `?state=form` | Biểu mẫu trống và bảng hai phiên bản đã có (mặc định) |
+| `?state=sending` | Đang đọc gói và tính mã băm |
+| `?state=created` | Đã tạo phiên bản: hiện đủ mã băm, gói, game và studio |
+| `?state=same` | Gói trùng với một phiên bản đã có: không tạo phiên bản mới |
+| `?state=refused` | Gói bị từ chối, kèm lý do |
+| `?state=empty` | Chưa có phiên bản nào |
+| `?state=loading` | Đang tải |
+| `?state=error` | Không tải được |
+
+Màn hình này chạy thật với tệp trên máy người xem. Ba kịch bản của US-01 thử
+như sau:
+
+1. Chọn một tệp `.zip` có `index.html` ở gốc, ghi tên studio và tên game, bấm
+   "Gửi gói": trang hiện mã băm SHA-256 của tệp và thêm một dòng vào bảng.
+2. Gửi lại đúng tệp đó: trang báo gói đã là một phiên bản, hiện cùng mã băm, và
+   không thêm dòng nào.
+3. Gửi một tệp `.zip` không có `index.html` ở gốc, hoặc một tệp không phải
+   `.zip`: trang từ chối và nói lý do.
+
+`nop.js` đóng vai máy chủ. Nó tính mã băm bằng Web Crypto và đọc mục lục của tệp
+`.zip` ngay trong trình duyệt. Tệp không được gửi đi đâu; tải lại trang là về
+dữ liệu mẫu. Ba mã băm mẫu trong trang là chuỗi đặt ra, không phải mã băm của
+gói nào.
+
+Những thứ màn hình này **chưa vẽ** hoặc tự đặt ra, vì bản yêu cầu chưa nói:
+
+- studio tự gửi gói. FR-01 cho phép cả studio lẫn người vận hành gửi; kịch bản
+  của US-01 chỉ tả người vận hành, và màn hình theo kịch bản;
+- giới hạn cỡ gói, và việc kiểm gì bên trong gói ngoài `index.html`;
+- gói trùng thì không tạo phiên bản mới. Bản yêu cầu chỉ nói "cho ra cùng mã
+  băm";
+- thanh tiến độ khi tải một gói lớn lên máy chủ, và lỗi mạng giữa chừng;
+- xoá một phiên bản, và trang riêng của từng phiên bản (US-09);
+- bước tiếp theo "mở lượt chơi thử cho phiên bản này" (US-10).
+
 ## Tệp
 
 | Tệp                      | Nội dung                                                                |
@@ -76,7 +169,11 @@ Những thứ màn hình này **chưa vẽ**, vì bản yêu cầu chưa nói:
 | `bao-cao.html`           | Màn hình studio đọc báo cáo                                             |
 | `duyet-bao-cao.html` | Màn hình người vận hành duyệt báo cáo |
 | `duyet.js` | Hành vi của màn hình duyệt trong bản xem thử: đếm bằng chứng, từ chối, bỏ và hoàn tác |
-| `preview.js`             | Đổi trạng thái theo địa chỉ; ghi phát hiện đang mở vào địa chỉ          |
+| `choi-thu.html` | Màn hình người chơi thử vào chơi |
+| `choi-thu.js` | Hành vi của màn hình vào chơi: đồng ý, khung game, đồng hồ, lỗi, câu hỏi. Chứa game mẫu |
+| `nop-phien-ban.html` | Màn hình người vận hành gửi phiên bản |
+| `nop.js` | Hành vi của màn hình gửi phiên bản: mã băm, đọc mục lục `.zip`, gói trùng, từ chối |
+| `preview.js` | Đổi trạng thái theo địa chỉ; ghi phát hiện đang mở vào địa chỉ; cho các tệp trên biết trạng thái đang hiện |
 
 ## Kiểu chữ
 
@@ -124,6 +221,10 @@ Chạy với Hallmark ở commit `04977e1`, cách chạy nằm ở `../research/
 | 2026-11-29 | Tĩnh, sau khi thêm màn hình duyệt | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4) |
 | 2026-11-29 | Dựng hình, màn hình duyệt, sáu trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
 | 2026-11-29 | Dựng hình lại, màn hình báo cáo, bốn trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
+| 2026-11-29 | Tĩnh, đủ bốn màn hình | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4) |
+| 2026-11-29 | Dựng hình, màn hình vào chơi, tám trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
+| 2026-11-29 | Dựng hình, màn hình gửi phiên bản, tám trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
+| 2026-11-29 | Dựng hình lại, màn hình báo cáo (bốn) và màn hình duyệt (sáu) | 0 FAIL, 0 REFLEX, 0 WARN |
 
 - **F4** báo có hai kiểu nút được tô nền. Nút phụ là "giấy bìa" của Hum trên
   màu thẻ; chỉ nút chính có màu vàng. Lý do được ghi ở đầu `app.css`.
@@ -134,3 +235,9 @@ Chạy với Hallmark ở commit `04977e1`, cách chạy nằm ở `../research/
   ở 320 px). Đã sửa bằng cách rút ngắn nhãn, không ghi miễn.
 - Lần dựng hình đầu của màn hình báo cáo báo hai REFLEX (một liên kết xuống dòng ở 1024 px; chữ của
   phát hiện đang đóng bị tính là sát mép). Cả hai đã được sửa, không ghi miễn.
+- Lần dựng hình đầu của màn hình vào chơi báo một FAIL: khung game không hiện
+  vòng tiêu điểm khi bàn phím đi vào. Đã sửa: `choi-thu.js` đánh dấu khung đang
+  giữ tiêu điểm và `app.css` vẽ vòng cho nó. Lần chạy tĩnh đầu báo một WARN về
+  nhãn nút dài; đã rút ngắn nhãn.
+
+Ngày ghi trong bảng là ngày theo giờ Việt Nam.

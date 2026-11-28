@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Vào và chơi thử, bản xem thử P02 của Game9K Playtest</title>
+    <meta
+      name="description"
+      content="Màn hình người chơi thử: đọc chỉ dẫn và điều khoản, đồng ý, chơi trong trang, rồi trả lời câu hỏi. Bản xem thử, dữ liệu mẫu."
+    />
+    <link rel="stylesheet" href="./app.css" />
+    <script src="./preview.js" defer></script>
+    <script src="./choi-thu.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#noi-dung">Tới nội dung</a>
+
+    <aside class="preview" aria-label="Thông tin bản xem thử">
+      <div class="container shell preview__in">
+        <p>
+          Bản xem thử của pha P02. Mọi tên, ngày và số liệu là dữ liệu mẫu, và
+          không có gì được lưu.
+        </p>
+        <ul class="views" aria-label="Trạng thái của màn hình">
+          <li class="views__label">Trạng thái</li>
+          <li>
+            <a href="?state=invite" data-view-link="invite" aria-current="page"
+              >Lời mời</a
+            >
+          </li>
+          <li>
+            <a href="?state=playing" data-view-link="playing">Đang chơi</a>
+          </li>
+          <li>
+            <a href="?state=questions" data-view-link="questions">Câu hỏi</a>
+          </li>
+          <li><a href="?state=done" data-view-link="done">Đã gửi</a></li>
+          <li>
+            <a href="?state=failed" data-view-link="failed">Game không chạy</a>
+          </li>
+          <li>
+            <a href="?state=closed" data-view-link="closed">Lượt đã đóng</a>
+          </li>
+          <li>
+            <a href="?state=loading" data-view-link="loading">Đang tải</a>
+          </li>
+          <li><a href="?state=error" data-view-link="error">Lỗi</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <header class="bar">
+      <div class="container shell bar__in">
+        <a
+          class="brand"
+          href="./choi-thu"
+          aria-label="Game9K Playtest, về lời mời"
+          >Game9K Playtest</a
+        >
+        <span class="bar__what">Người chơi thử</span>
+      </div>
+    </header>
+
+    <main id="noi-dung" class="container shell">
+      <div class="stack" data-state="invite">
+        <section class="head">
+          <h1>Mời bạn chơi thử <span class="nowrap">Ếch Vượt Ao</span></h1>
+          <p class="lead">
+            Game chạy ngay trong trang này,
+            <mark>không cần tải hay cài gì</mark>. Hãy đọc ba phần dưới đây rồi
+            bấm vào chơi.
+          </p>
+        </section>
+
+        <section aria-labelledby="chi-dan">
+          <h2 id="chi-dan">Việc của bạn</h2>
+          <ol class="steps">
+            <li>
+              Chơi từ đầu và cố qua càng nhiều màn càng tốt, trong khoảng 10
+              phút.
+            </li>
+            <li>Bấm “Kết thúc phiên chơi” khi bạn muốn dừng.</li>
+            <li>
+              Trả lời ba câu hỏi ngắn. Hãy nói thật điều bạn thấy; không có câu
+              trả lời đúng hay sai.
+            </li>
+          </ol>
+          <p class="how">
+            Phần thưởng do người đã mời bạn trả trực tiếp, theo mức họ đã báo
+            khi mời. Trang này không giữ tiền.
+          </p>
+        </section>
+
+        <section class="terms" aria-labelledby="dieu-khoan">
+          <h2 id="dieu-khoan">Điều khoản</h2>
+          <div class="terms__in">
+            <div>
+              <h3>Dữ liệu được ghi</h3>
+              <p>
+                Trong phiên chơi, trang này ghi giờ bắt đầu và giờ kết thúc,
+                thời lượng lúc thẻ này đang hiện, trình duyệt và cỡ màn hình,
+                mốc bạn tới được trong game, lỗi của game, và câu trả lời của
+                bạn.
+              </p>
+              <p>
+                Trang này không quay màn hình và không ghi âm. Studio làm game
+                nhận một báo cáo có các số đo và câu trả lời đó.
+              </p>
+            </div>
+            <div>
+              <h3>Giữ kín bản game</h3>
+              <p>
+                Bản game này chưa phát hành. Bạn không chia sẻ hình, video hay
+                nội dung của nó cho ai ngoài người đã mời bạn.
+              </p>
+              <p>
+                Nếu bạn đóng trang mà không đồng ý, không phiên chơi nào được
+                ghi cho bạn.
+              </p>
+            </div>
+          </div>
+
+          <form class="consent" data-consent novalidate>
+            <label class="pick" for="dong-y">
+              <input
+                type="checkbox"
+                id="dong-y"
+                name="dong-y"
+                aria-describedby="dong-y-loi"
+              />
+              Tôi từ 18 tuổi trở lên và đồng ý với hai điều khoản trên
+            </label>
+            <p class="field__error" id="dong-y-loi" hidden>
+              Lỗi: hãy đánh dấu ô đồng ý trước khi vào chơi.
+            </p>
+            <div class="actions">
+              <button type="submit" class="btn btn--primary">
+                Đồng ý và vào chơi
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="stack" data-state="playing" hidden>
+        <section class="play" aria-labelledby="dang-choi">
+          <div class="play__bar">
+            <div>
+              <h1 id="dang-choi">Ếch Vượt Ao</h1>
+              <p class="section__note">
+                Đồng hồ chỉ chạy khi thẻ này đang hiện.
+              </p>
+            </div>
+            <p class="clock">
+              <span class="visually-hidden">Thời lượng đã chơi:</span>
+              <span data-clock>0:00</span>
+            </p>
+            <div class="play__end">
+              <button type="button" class="btn" data-end>
+                Kết thúc phiên chơi
+              </button>
+              <div class="play__sure" data-end-sure hidden>
+                <span>Kết thúc thì không chơi tiếp được.</span>
+                <button type="button" class="btn btn--primary" data-end-yes>
+                  Kết thúc
+                </button>
+                <button type="button" class="btn" data-end-no>Chơi tiếp</button>
+              </div>
+            </div>
+          </div>
+          <iframe
+            class="frame"
+            data-game
+            title="Game Ếch Vượt Ao"
+            sandbox="allow-scripts"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </section>
+
+        <details class="again">
+          <summary>Xem lại việc của bạn</summary>
+          <ol class="steps">
+            <li>
+              Chơi từ đầu và cố qua càng nhiều màn càng tốt, trong khoảng 10
+              phút.
+            </li>
+            <li>Bấm “Kết thúc phiên chơi” khi bạn muốn dừng.</li>
+            <li>Trả lời ba câu hỏi ngắn.</li>
+          </ol>
+        </details>
+
+        <p class="fee">
+          Dành cho người duyệt bản xem thử: khung trên chạy một game mẫu trong
+          khung cô lập.
+          <button type="button" class="btn" data-throw>Gây lỗi thử</button>
+        </p>
+      </div>
+
+      <div class="stack" data-state="questions" hidden>
+        <section class="head">
+          <h1>Ba câu hỏi về phiên chơi của bạn</h1>
+          <p class="lead">
+            Phiên chơi đã kết thúc. Câu trả lời của bạn được gắn vào đúng phiên
+            chơi này.
+          </p>
+          <dl class="facts facts--three">
+            <div>
+              <dt>Thời lượng ghi được</dt>
+              <dd data-sum-time>3:05</dd>
+            </div>
+            <div>
+              <dt>Mốc xa nhất</dt>
+              <dd data-sum-mark>Màn 2</dd>
+            </div>
+            <div>
+              <dt>Lỗi của game đã ghi</dt>
+              <dd data-sum-errors>Không có</dd>
+            </div>
+          </dl>
+          <p class="section__note" data-sum-sample>
+            Ba số trên là số mẫu. Vào chơi rồi kết thúc thì chúng là số của
+            phiên chơi vừa rồi.
+          </p>
+        </section>
+
+        <form class="answers" data-answers novalidate>
+          <div class="field">
+            <label for="cau-1">Màn nào làm bạn thấy khó nhất, và vì sao?</label>
+            <textarea
+              class="input"
+              id="cau-1"
+              name="cau-1"
+              rows="3"
+              required
+              aria-describedby="cau-1-loi"
+            ></textarea>
+            <p class="field__error" id="cau-1-loi" hidden>
+              Lỗi: hãy trả lời câu này trước khi gửi.
+            </p>
+          </div>
+          <div class="field">
+            <label for="cau-2"
+              >Có lúc nào bạn không biết phải làm gì tiếp không? Nếu có, hãy kể
+              lại.</label
+            >
+            <textarea
+              class="input"
+              id="cau-2"
+              name="cau-2"
+              rows="3"
+              aria-describedby="cau-2-goi-y"
+            ></textarea>
+            <p class="field__hint" id="cau-2-goi-y">Không bắt buộc.</p>
+          </div>
+          <fieldset class="choices">
+            <legend>Bạn có muốn chơi tiếp game này không?</legend>
+            <label class="pick"
+              ><input type="radio" name="cau-3" value="co" /> Có</label
+            >
+            <label class="pick"
+              ><input type="radio" name="cau-3" value="khong" /> Không</label
+            >
+            <label class="pick"
+              ><input type="radio" name="cau-3" value="chua-chac" /> Chưa
+              chắc</label
+            >
+          </fieldset>
+          <div class="actions">
+            <button type="submit" class="btn btn--primary">
+              Gửi câu trả lời
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <section class="state" data-state="done" hidden>
+        <h1>Cảm ơn bạn đã chơi thử</h1>
+        <p>
+          Câu trả lời đã được gắn vào phiên chơi của bạn, dài
+          <span data-sum-time>3:05</span>. Bạn có thể đóng trang này.
+        </p>
+        <p class="state__why">
+          Người đã mời bạn sẽ liên hệ về phần thưởng. Xin nhớ giữ kín bản game.
+        </p>
+      </section>
+
+      <section
+        class="state state--error"
+        data-state="failed"
+        role="alert"
+        hidden
+      >
+        <h1>Game không khởi động được</h1>
+        <p>
+          Tệp chính của game không tải được. Lỗi đã được ghi vào phiên chơi này;
+          bạn không làm gì sai.
+        </p>
+        <p class="state__why">
+          Hãy thử tải lại game. Nếu vẫn không được, nhắn cho người đã mời bạn.
+        </p>
+        <button type="button" class="btn btn--primary" data-retry>
+          Thử tải lại game
+        </button>
+      </section>
+
+      <section class="state" data-state="closed" hidden>
+        <h1>Lượt chơi thử này đã đóng</h1>
+        <p>
+          Đường dẫn mời của bạn không còn dùng được, và không có gì được ghi cho
+          bạn.
+        </p>
+        <p class="state__why">
+          Nếu bạn nghĩ đây là nhầm lẫn, nhắn cho người đã mời bạn.
+        </p>
+      </section>
+
+      <section class="skel" data-state="loading" aria-busy="true" hidden>
+        <h1 class="visually-hidden">Đang tải lời mời</h1>
+        <div>
+          <i class="skel__title"></i>
+          <i class="skel__line"></i>
+        </div>
+        <div class="skel__sheets"><i></i><i></i></div>
+      </section>
+
+      <section
+        class="state state--error"
+        data-state="error"
+        role="alert"
+        hidden
+      >
+        <h1>Không tải được lời mời</h1>
+        <p>
+          Kết nối tới máy chủ bị gián đoạn nên trang chưa lấy được nội dung.
+          Chưa có gì được ghi cho bạn.
+        </p>
+        <p class="state__why">
+          Hãy tải lại. Nếu vẫn lỗi, nhắn cho người đã mời bạn.
+        </p>
+        <a class="btn btn--primary" href="?state=invite">Tải lại</a>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="container shell foot__in">
+        <p>Game9K Playtest. Bạn chơi thử một bản game chưa phát hành.</p>
+      </div>
+    </footer>
+  </body>
+</html>

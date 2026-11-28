@@ -9,20 +9,43 @@
   var views = links.map(function (a) {
     return a.getAttribute("data-view-link");
   });
-  var wanted = new URLSearchParams(location.search).get("state");
-  var view = views.indexOf(wanted) === -1 ? views[0] : wanted;
 
-  // Một vùng có thể thuộc nhiều trạng thái: data-state="draft refused".
-  document.querySelectorAll("[data-state]").forEach(function (el) {
-    var own = el.getAttribute("data-state").split(/\s+/);
-    el.hidden = own.indexOf(view) === -1;
-  });
-  links.forEach(function (a) {
-    if (a.getAttribute("data-view-link") === view) {
-      a.setAttribute("aria-current", "page");
-    } else {
-      a.removeAttribute("aria-current");
-    }
+  function fromAddress() {
+    var wanted = new URLSearchParams(location.search).get("state");
+    return views.indexOf(wanted) === -1 ? views[0] : wanted;
+  }
+
+  // Hiện một trạng thái. Một vùng có thể thuộc nhiều trạng thái:
+  // data-state="draft refused".
+  function show(view) {
+    document.querySelectorAll("[data-state]").forEach(function (el) {
+      var own = el.getAttribute("data-state").split(/\s+/);
+      el.hidden = own.indexOf(view) === -1;
+    });
+    links.forEach(function (a) {
+      if (a.getAttribute("data-view-link") === view) {
+        a.setAttribute("aria-current", "page");
+      } else {
+        a.removeAttribute("aria-current");
+      }
+    });
+    document.dispatchEvent(new CustomEvent("g9k:view", { detail: view }));
+  }
+
+  // Cho script của từng màn hình: đổi trạng thái và ghi nó vào địa chỉ, để
+  // nút Quay lại của trình duyệt đi đúng các bước.
+  window.g9kPreview = {
+    view: fromAddress,
+    go: function (view) {
+      history.pushState(null, "", "?state=" + view);
+      show(view);
+      window.scrollTo(0, 0);
+    },
+  };
+
+  show(fromAddress());
+  window.addEventListener("popstate", function () {
+    show(fromAddress());
   });
 
   // Một địa chỉ có #phat-hien-2 mở sẵn phát hiện đó.

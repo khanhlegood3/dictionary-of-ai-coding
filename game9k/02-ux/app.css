@@ -1,5 +1,5 @@
 /* Hallmark · shape: app screen · genre: playful · theme: Hum (by request), faces replaced (by request)
- * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty, loading, error, refused, approved
+ * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty, loading, error, refused, approved, invite, playing, questions, done, failed, closed, sending, created, same
  * axes: light/geometric-sans/chromatic-yellow · posture: full-palette · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: V, the serif body and the sans labels are not Hum, the owner replaced the faces because Chillax drew Vietnamese letters wrongly */
 /* Hallmark · answered F4 · the secondary button is Hum card stock on the card colour, and the pear fill is kept for the one action of a state */
@@ -63,7 +63,17 @@ code,
 .table tbody th,
 .table td::before,
 .field label,
+.field__hint,
+.field__error,
 .evidence legend,
+.choices legend,
+.terms h3,
+.steps li::before,
+.clock,
+.play__sure,
+.again summary,
+.receipt dt,
+.send__busy,
 .pick,
 .undo,
 .alert h3,
@@ -575,6 +585,244 @@ textarea.input {
   margin-top: var(--space-xs);
 }
 
+.field__hint {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.field__error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.choices {
+  display: grid;
+  justify-items: start;
+  min-width: 0;
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.choices .pick {
+  font-weight: 500;
+}
+
+.answers .field:first-child {
+  margin-top: 0;
+}
+
+/* The tester's screens: what to do, the terms, the game, the clock. */
+
+.steps {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 70ch;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: var(--space-xl) minmax(0, 1fr);
+  align-items: baseline;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.terms__in {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg) var(--space-xl);
+  margin-top: var(--space-md);
+}
+
+.terms h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.terms p {
+  margin-top: var(--space-xs);
+}
+
+.consent {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.consent .pick {
+  font-weight: 500;
+}
+
+.consent .actions {
+  margin-top: var(--space-md);
+}
+
+.play__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm) var(--space-xl);
+}
+
+.clock {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
+}
+
+.play__sure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 70vh;
+  margin-top: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* A frame shows no ring of its own when the keyboard goes into it, and
+   :focus does not match it. The screen's script sets this class instead. */
+.frame.is-focused {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.again summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-accent-2);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  list-style: none;
+}
+
+.again summary::-webkit-details-marker {
+  display: none;
+}
+
+.again .steps {
+  margin-top: var(--space-xs);
+}
+
+.fee .btn {
+  margin-left: var(--space-sm);
+}
+
+.facts--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* The operator's upload screen: the form, and what the system answers. */
+
+.send__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-lg);
+  max-width: 70ch;
+}
+
+.input--file {
+  padding: var(--space-xs);
+  cursor: pointer;
+}
+
+.input--file::file-selector-button {
+  min-height: 28px;
+  margin-right: var(--space-sm);
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--space-xs);
+  background: var(--color-card);
+  color: var(--color-ink);
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.send .actions {
+  align-items: center;
+}
+
+.send__busy {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.notice {
+  padding: var(--space-lg);
+  border-radius: var(--radius-card);
+  background: var(--color-paper-3);
+}
+
+.notice--good {
+  background: color-mix(in oklab, var(--color-mint) 32%, var(--color-paper));
+}
+
+.notice > p {
+  max-width: 70ch;
+  margin-top: var(--space-md);
+}
+
+.receipt {
+  display: grid;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
+}
+
+.receipt dt {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.receipt dd {
+  margin: var(--space-3xs) 0 0;
+}
+
+.hash {
+  overflow-wrap: anywhere;
+}
+
 /* Buttons: Hum's card stock at the app's control height. */
 
 .btn {
@@ -742,6 +990,19 @@ textarea.input {
   .bar__what {
     display: none;
   }
+
+  .terms__in,
+  .send__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .play__bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .play__end {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Under 45rem: each table row restacks as a labelled block, and the row's
@@ -815,5 +1076,13 @@ textarea.input {
 @media (max-width: 30rem) {
   .stats dd {
     font-size: var(--text-2xl);
+  }
+
+  .frame {
+    aspect-ratio: 3 / 4;
+  }
+
+  .fee .btn {
+    margin: var(--space-sm) 0 0;
   }
 }
