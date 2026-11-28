@@ -2,8 +2,8 @@
 status: accepted
 date: 2026-11-28
 title_vi: Màn hình pha P02 của Game9K là trang tĩnh theo theme Hum
-summary: The owner chose the Hum theme and started phase P02. The screens are static HTML and CSS files under game9k/02-ux, one per flow, and the site build publishes them so that each pull request has a preview. They are design documents, not the application's code.
-summary_vi: Chủ dự án chọn theme Hum và cho bắt đầu pha P02. Màn hình là các tệp HTML và CSS tĩnh trong game9k/02-ux, mỗi luồng một tệp, và bản dựng của trang đưa chúng lên để mỗi pull request có bản xem thử. Chúng là tài liệu thiết kế, không phải mã của ứng dụng.
+summary: The owner chose the Hum theme and started phase P02, then replaced its typeface with Be Vietnam Pro and Lora because the theme's own face drew Vietnamese letters with marks wrongly. The screens are static HTML and CSS files under game9k/02-ux, one per flow, and the site build publishes them so that each pull request has a preview. They are design documents, not the application's code.
+summary_vi: Chủ dự án chọn theme Hum và cho bắt đầu pha P02, rồi thay kiểu chữ của theme bằng Be Vietnam Pro và Lora vì kiểu chữ gốc hiện sai chữ tiếng Việt có dấu. Màn hình là các tệp HTML và CSS tĩnh trong game9k/02-ux, mỗi luồng một tệp, và bản dựng của trang đưa chúng lên để mỗi pull request có bản xem thử. Chúng là tài liệu thiết kế, không phải mã của ứng dụng.
 ---
 
 # Game9K screens of phase P02 are static pages in the Hum theme
@@ -26,8 +26,20 @@ before merging?
 ## Decision
 
 - **The theme is Hum.** This is the owner's decision. Hum gives the palette,
-  the typeface, the radii and the surfaces. Layout and navigation belong to
-  each screen, as Hallmark's app scope requires.
+  the radii and the surfaces. Layout and navigation belong to each screen, as
+  Hallmark's app scope requires.
+- **The typefaces are Be Vietnam Pro and Lora, not Hum's Chillax.** On
+  2026-11-29 the owner opened the first screen, saw that Vietnamese letters
+  with marks were drawn wrongly, and wrote: "Hãy đổi sang cho đúng chuẩn font
+  của Claude design" (change to the font standard of Claude's design). The
+  agent read that as the published Anthropic brand guideline
+  (`anthropics/skills`, `skills/brand-guidelines`, commit `b9e19e6`), which
+  names Poppins for headings and Lora for body text.
+  - Lora is used for body text, as the guideline says.
+  - Poppins lacks 90 of the 134 Vietnamese letters with marks, by its files.
+    Be Vietnam Pro stands in for it, for headings, labels and controls.
+  - Both faces are under the SIL Open Font License 1.1 and are served from
+    `game9k/02-ux/fonts/`. No screen loads a font from a third party.
 - **Phase P02 started on 2026-11-28.** This is the owner's decision.
 - **A screen is a static HTML file under `game9k/02-ux/`**, with shared CSS
   beside it. There is one file per flow of the requirements document. A screen
@@ -57,11 +69,17 @@ before merging?
   is on the Hobby plan, which is for non-commercial use. A prototype with
   sample data and no customer fits that. The real service does not; issue #55
   still needs its own decision.
-- A screen loads the Chillax typeface from Fontshare, so the reader's browser
-  makes a request to a third party. That is acceptable for a prototype. The
-  real application should serve the font itself.
+- The screens no longer follow Hum in one respect: Hum says "no serif", and
+  Lora is a serif. The owner's instruction comes first. The stamp at the top
+  of `app.css` says the faces were replaced.
+- Fontshare lists Vietnamese among the languages of Chillax. The owner's
+  screenshot showed otherwise; the agent did not examine the Chillax file. A
+  font's language list is not evidence. From now on a face is checked against
+  its files before it is used.
 - `site/build.ts` reserves the path `game9k`, so no dictionary term can take
   that slug.
-- **Not verified.** The sandbox cannot reach Fontshare. Every check and every
-  screenshot there used the fallback typeface. Whether Chillax draws
-  Vietnamese diacritics well is unknown until the owner opens the preview.
+- **Not verified.** Whether Poppins and Lora are what the owner meant by
+  "Claude design". The typefaces of the Claude application itself were not
+  examined; a commercial face could not be put in a public repository without
+  a licence. The new faces were rendered in the sandbox only, in Chromium on
+  Linux, not on the owner's machine.

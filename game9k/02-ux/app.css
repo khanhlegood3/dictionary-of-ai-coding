@@ -1,10 +1,17 @@
-/* Hallmark · shape: app screen · genre: playful · theme: Hum (by request)
+/* Hallmark · shape: app screen · genre: playful · theme: Hum (by request), faces replaced (by request)
  * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty (report in draft), loading, error
- * axes: light/rounded-sans/chromatic-yellow · posture: full-palette · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: E, the sandbox cannot load Chillax so every render check ran in the fallback face */
+ * axes: light/geometric-sans/chromatic-yellow · posture: full-palette · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: V, the serif body and the sans labels are not Hum, the owner replaced the faces because Chillax drew Vietnamese letters wrongly */
 /* Hallmark · answered F4 · the secondary button is Hum card stock on the card colour, and the pear fill is kept for the one action of a state */
 @import url("./tokens.css");
 @import url("./base.css");
+@import url("./fonts.css");
+
+/* The faces. The owner replaced Hum's Chillax, which drew Vietnamese
+   letters with marks wrongly. The published Anthropic brand guideline names Poppins for
+   headings and Lora for body text. Poppins lacks most of those letters
+   too, so Be Vietnam Pro stands in for it. The faces are set in
+   tokens.css and served from ./fonts/ by fonts.css. */
 
 :root {
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 0 0.25 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -14,7 +21,7 @@
 
 body {
   background: var(--grain), var(--color-paper);
-  font-weight: 500;
+  font-weight: 400;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -41,6 +48,24 @@ code,
 
 .shell {
   --container: 1200px;
+}
+
+/* Headings, labels and controls are set in the heading face. Sentences a
+   person reads, and the cells of a table, are set in the body face. */
+.preview,
+.bar,
+.facts dt,
+.stats,
+.section__note,
+.finding summary,
+.table thead th,
+.table tbody th,
+.table td::before,
+.btn,
+.skip,
+.foot {
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .skip {
@@ -382,6 +407,7 @@ main {
 
 .table .num {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .table .quote {

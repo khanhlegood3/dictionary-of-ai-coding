@@ -2597,6 +2597,15 @@ function copyGame9kScreens(): number {
     /\.(html|css|js)$/.test(name)
   );
   for (const name of files) copyFileSync(join(from, name), join(to, name));
+  // The typefaces of the screens, with their licence texts.
+  const fonts = join(from, "fonts");
+  if (existsSync(fonts)) {
+    mkdirSync(join(to, "fonts"), { recursive: true });
+    for (const name of readdirSync(fonts).filter((n) =>
+      /\.(woff2|txt)$/.test(n)
+    ))
+      copyFileSync(join(fonts, name), join(to, "fonts", name));
+  }
   return files.filter((name) => name.endsWith(".html")).length;
 }
 

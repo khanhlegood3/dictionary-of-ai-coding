@@ -39,10 +39,33 @@ Dải trên cùng của trang là công cụ của bản xem thử, không thu�
 
 | Tệp                      | Nội dung                                                                |
 | ------------------------ | ----------------------------------------------------------------------- |
-| `tokens.css`, `base.css` | Do lệnh `theme.mjs scaffold hum --scope app` của Hallmark sinh ra. Không sửa tay |
+| `tokens.css`, `base.css` | Do lệnh `theme.mjs scaffold hum --scope app` của Hallmark sinh ra. Chỉ sửa tay các dòng về kiểu chữ trong `tokens.css` |
 | `app.css`                | Phần dùng chung của các màn hình. Đầu tệp có dòng ghi của Hallmark      |
 | `bao-cao.html`           | Màn hình studio đọc báo cáo                                             |
+| `fonts.css`, `fonts/` | Hai kiểu chữ của màn hình và văn bản giấy phép của chúng |
 | `preview.js`             | Đổi trạng thái theo địa chỉ; ghi phát hiện đang mở vào địa chỉ          |
+
+## Kiểu chữ
+
+Theme Hum dùng kiểu chữ Chillax. Trên bản xem thử, Chillax hiện sai nhiều chữ
+tiếng Việt có dấu (ảnh chụp của chủ dự án; agent chưa đọc tệp phông Chillax).
+Ngày 2026-11-29 chủ dự án yêu cầu đổi sang "chuẩn font của Claude design".
+Agent hiểu đó là bản hướng dẫn thương hiệu Anthropic đã công bố
+(`anthropics/skills`, thư mục `skills/brand-guidelines`, commit `b9e19e6`):
+tiêu đề dùng Poppins, phần chữ đọc dùng Lora.
+
+| Vai                           | Hướng dẫn ghi | Màn hình dùng  | Lý do                                             |
+| ----------------------------- | ------------- | -------------- | ------------------------------------------------- |
+| Phần chữ đọc, ô của bảng      | Lora          | Lora           | Đúng hướng dẫn. Lora có đủ chữ tiếng Việt          |
+| Tiêu đề, nhãn, nút, thanh trên | Poppins       | Be Vietnam Pro | Poppins thiếu 90 trên 134 chữ tiếng Việt có dấu |
+
+Cách kiểm: đọc bảng mã của từng tệp phông bằng `fontTools`, rồi so với mọi ký
+tự trên màn hình và 134 chữ tiếng Việt có dấu, cả hoa lẫn thường. Lora và Be
+Vietnam Pro không thiếu chữ nào.
+
+Hai phông đều theo giấy phép SIL Open Font License 1.1. Tệp phông lấy từ
+`@fontsource-variable/lora` 5.3.0 và `@fontsource/be-vietnam-pro` 5.3.0, đặt ở
+`fonts/` cùng văn bản giấy phép. Màn hình không tải phông từ nơi nào khác.
 
 ## Dữ liệu mẫu
 
@@ -59,11 +82,13 @@ Chạy với Hallmark ở commit `04977e1`, cách chạy nằm ở `../research/
 | ---------- | -------------------------------------- | --------------------------------------------------- |
 | 2026-11-28 | Tĩnh, `--scope app`, cả thư mục        | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4)           |
 | 2026-11-28 | Dựng hình, `--scope app`, bốn trạng thái | 0 FAIL, 0 REFLEX, 1 WARN mỗi trạng thái (phông chữ) |
+| 2026-11-29 | Tĩnh, sau khi đổi phông | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4) |
+| 2026-11-29 | Dựng hình, sau khi đổi phông, bốn trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
 
 - **F4** báo có hai kiểu nút được tô nền. Nút phụ là "giấy bìa" của Hum trên
   màu thẻ; chỉ nút chính có màu vàng. Lý do được ghi ở đầu `app.css`.
-- **WARN về phông chữ:** máy làm việc không truy cập được `api.fontshare.com`,
-  nên mọi lần dựng hình dùng phông dự phòng. Hallmark yêu cầu không duyệt một
-  màn hình ở phông dự phòng. Phần này chờ chủ dự án xem trên bản xem thử.
+- **WARN về phông chữ (lần chạy 2026-11-28):** máy làm việc không tải được
+  Chillax từ `api.fontshare.com`, nên lần đó dựng hình bằng phông dự phòng.
+  Sau khi đổi phông và đặt tệp phông trong kho, cảnh báo này hết.
 - Lần dựng hình đầu báo hai REFLEX (một liên kết xuống dòng ở 1024 px; chữ của
   phát hiện đang đóng bị tính là sát mép). Cả hai đã được sửa, không ghi miễn.

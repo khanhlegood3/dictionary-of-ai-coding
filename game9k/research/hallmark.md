@@ -99,6 +99,11 @@ việc của chủ dự án.
 **Cập nhật 2026-11-28:** chủ dự án chọn Hum và cho bắt đầu pha P02 (ADR 0014).
 Màn hình đầu tiên và kết quả `sloplint` của nó nằm ở `../02-ux/`.
 
+**Cập nhật 2026-11-29:** kiểu chữ Chillax của Hum hiện sai chữ tiếng Việt có
+dấu, dù trang Fontshare ghi có hỗ trợ tiếng Việt. Chủ dự án cho đổi kiểu chữ;
+lý do và cách kiểm nằm ở `../02-ux/README.md`. Bài học: khi chọn theme cho
+trang tiếng Việt, phải kiểm tệp phông trước, không tin danh sách ngôn ngữ.
+
 ## Ba cách làm đáng chép cho sản phẩm
 
 Ngoài việc dựng màn hình, cách Hallmark kiểm một trang giống việc Game9K
