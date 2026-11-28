@@ -1,13 +1,13 @@
 # Bản yêu cầu sản phẩm: Game9K Playtest, bản đầu
 
-> **Bản nháp chờ duyệt ở cổng P01.** Agent viết ngày 2026-11-28 theo yêu cầu
-> "viết PRD" của chủ dự án, cho issue #28. Lõi kinh doanh theo ADR 0012: dịch vụ
-> chơi thử trả phí cho studio.
+> **Đã được chủ dự án duyệt ở cổng P01 ngày 2026-11-28** (pull request #44).
+> Agent viết ngày 2026-11-28 theo yêu cầu "viết PRD" của chủ dự án, cho issue
+> #28. Lõi kinh doanh theo ADR 0012: dịch vụ chơi thử trả phí cho studio.
 >
-> Ba câu hỏi agent đã hỏi chưa có trả lời: ai trả tiền, mã nằm ở đâu, và có
-> sẵn người để hỏi không. Bản này viết với giả định ghi ở mục 3; mỗi giả định
-> có mã `GĐ-n` và được nhắc lại ở chỗ nó chi phối. Chủ dự án đổi giả định nào
-> thì phần phụ thuộc đổi theo.
+> Duyệt nghĩa là bản này được dùng làm gốc cho pha P02. Các giả định ở mục 3
+> vẫn là giả định, mỗi cái có mã `GĐ-n` và được nhắc lại ở chỗ nó chi phối. Các
+> câu hỏi ở mục 11 vẫn chưa có trả lời. Chủ dự án đổi giả định nào thì phần phụ
+> thuộc đổi theo, bằng một pull request sửa bản này.
 >
 > Chưa điều gì trong bản này được kiểm bằng khách hàng thật.
 
@@ -395,12 +395,12 @@ vẫn chạy được với người thật và trả lời được hai câu đ
 
 ## 12. Sau cổng này
 
-Nếu chủ dự án merge pull request chứa bản này:
-
-- Mỗi user story ở mục 8 thành một issue có nhãn `game9k` và `phase:P02`.
+- Mười user story ở mục 8 đã thành issue #45 đến #54, có nhãn `game9k` và
+  `phase:P02`.
 - Pha P02 dựng màn hình cho bốn luồng: gửi phiên bản, vào chơi, duyệt báo cáo,
   đọc báo cáo. Theo `../PROCESS.md`, màn hình được duyệt trước rồi mới có hợp
-  đồng API.
+  đồng API. Pha này chưa bắt đầu.
+- Nơi chạy của bản đầu chưa được chọn; xem issue #55.
 - `ho-chieu-goi-von.md` vẫn là bản nháp. Trang phiên bản (FR-15) là phần của
   nó được đưa vào bản đầu.
 
