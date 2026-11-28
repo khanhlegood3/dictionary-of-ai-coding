@@ -1,5 +1,5 @@
 /* Hallmark · shape: app screen · genre: playful · theme: Hum (by request), faces replaced (by request)
- * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty (report in draft), loading, error
+ * nav: top bar · signature: a finding that opens onto the sessions behind it · states: full, empty, loading, error, refused, approved
  * axes: light/geometric-sans/chromatic-yellow · posture: full-palette · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: V, the serif body and the sans labels are not Hum, the owner replaced the faces because Chillax drew Vietnamese letters wrongly */
 /* Hallmark · answered F4 · the secondary button is Hum card stock on the card colour, and the pear fill is kept for the one action of a state */
@@ -62,6 +62,11 @@ code,
 .table thead th,
 .table tbody th,
 .table td::before,
+.field label,
+.evidence legend,
+.pick,
+.undo,
+.alert h3,
 .btn,
 .skip,
 .foot {
@@ -439,6 +444,135 @@ main {
   padding-top: var(--space-md);
   border-top: var(--rule-hair) solid var(--color-rule);
   color: var(--color-ink-2);
+}
+
+/* The review screen: fields, the choice of evidence, refusal, undo. */
+
+.field {
+  display: grid;
+  gap: var(--space-2xs);
+  max-width: 70ch;
+  margin-top: var(--space-md);
+}
+
+.field label,
+.evidence legend {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.input {
+  width: 100%;
+  min-height: var(--control);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-input);
+  background: var(--color-fringe);
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+textarea.input {
+  resize: vertical;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.evidence {
+  min-width: 0;
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.evidence legend {
+  padding: 0;
+}
+
+.evidence .table {
+  margin-top: var(--space-xs);
+}
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pick input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-ink);
+  cursor: pointer;
+}
+
+.table--pick tbody th {
+  padding-block: 0;
+}
+
+.table--pick td {
+  padding-top: var(--space-sm);
+}
+
+.tools,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.finding--bare .finding__count {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  min-height: 72px;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-card);
+  background: var(--color-paper-3);
+}
+
+.approve > p {
+  margin-top: var(--space-xs);
+  color: var(--color-ink-2);
+}
+
+.alert {
+  max-width: 70ch;
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-card);
+  background: color-mix(in oklab, var(--color-error) 9%, var(--color-paper));
+}
+
+.alert h3 {
+  color: var(--color-error);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.alert ul {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+}
+
+.alert li + li {
+  margin-top: var(--space-xs);
 }
 
 /* Buttons: Hum's card stock at the app's control height. */

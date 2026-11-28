@@ -35,7 +35,7 @@ nơi khác. Chúng là đầu vào và chưa được thẩm định ở đây.
 | Pha | Đầu ra                               | Bản nháp có sẵn                                                                | Trạng thái     |
 | --- | ------------------------------------ | ------------------------------------------------------------------------------ | -------------- |
 | P01 | Bản yêu cầu sản phẩm, backlog        | `GameFun/docs/PRD.md`, whitepaper, `sources/kien-truc-kvu-kau.md`, `01-requirements/ho-chieu-goi-von.md`              | Qua cổng 2026-11-28 (#44) |
-| P02 | Màn hình được duyệt                  | <https://game9k.vercel.app> (ghi "Prototype P02 · dữ liệu mô phỏng")           | Đang làm: 1 trên 4 luồng có màn hình (`02-ux/`) |
+| P02 | Màn hình được duyệt                  | <https://game9k.vercel.app> (ghi "Prototype P02 · dữ liệu mô phỏng")           | Đang làm: 2 trên 4 luồng có màn hình (`02-ux/`) |
 | P03 | Hợp đồng API, mô hình dữ liệu        | `GameFun/docs/02-database-schema.md`, `03-api-specification.md`                | Chưa qua cổng  |
 | P04 | Mã chạy được, có kiểm thử            | `khanhlegood1/Game9K-Starter-Kit`, <https://game9k-starter-kit-black.vercel.app> | Chưa qua cổng |
 | P05 | Yêu cầu phi chức năng, mô hình đe doạ | `GameFun/docs/05-c4-architecture-and-nfr.md`                                   | Chưa qua cổng  |

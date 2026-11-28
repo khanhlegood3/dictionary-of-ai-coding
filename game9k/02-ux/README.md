@@ -7,33 +7,65 @@ P02, không phải mã của ứng dụng
 
 ## Bốn luồng
 
-| Luồng trong bản yêu cầu | User story              | Màn hình       | Trạng thái           |
-| ----------------------- | ----------------------- | -------------- | -------------------- |
-| Studio đọc báo cáo      | US-06 (#50)             | `bao-cao.html` | Đã dựng, chờ nhận xét |
-| Người vận hành duyệt    | US-05 (#49)             | Chưa có        | Chưa dựng            |
-| Vào và chơi             | US-03 (#47), US-04 (#48) | Chưa có        | Chưa dựng            |
-| Nộp phiên bản           | US-01 (#45), US-02 (#46) | Chưa có        | Chưa dựng            |
+| Luồng trong bản yêu cầu | User story               | Màn hình             | Trạng thái            |
+| ----------------------- | ------------------------ | -------------------- | --------------------- |
+| Studio đọc báo cáo      | US-06 (#50)              | `bao-cao.html`       | Đã dựng, chờ nhận xét |
+| Người vận hành duyệt    | US-05 (#49)              | `duyet-bao-cao.html` | Đã dựng, chờ nhận xét |
+| Vào và chơi             | US-03 (#47), US-04 (#48) | Chưa có              | Chưa dựng             |
+| Nộp phiên bản           | US-01 (#45), US-02 (#46) | Chưa có              | Chưa dựng             |
 
 Màn hình đọc báo cáo được dựng trước vì nó là thứ studio trả tiền để nhận, và
 các màn hình khác phải sinh ra đúng dữ liệu mà nó hiển thị.
 
 ## Xem ở đâu
 
-- Trên bản xem thử của pull request: `/game9k/02-ux/bao-cao`.
+- Trên bản xem thử của pull request: `/game9k/02-ux/bao-cao` và
+  `/game9k/02-ux/duyet-bao-cao`.
 - Trên máy: `npm run build`, rồi `npm run preview`, rồi mở
   <http://localhost:3000/game9k/02-ux/bao-cao>.
 
-Mỗi trạng thái có địa chỉ riêng:
+Mỗi trạng thái có địa chỉ riêng. Dải trên cùng của trang chuyển giữa chúng; dải
+đó là công cụ của bản xem thử, không thuộc sản phẩm.
 
-| Địa chỉ          | Trạng thái                                                       |
-| ---------------- | ---------------------------------------------------------------- |
-| `?state=full`    | Báo cáo đã duyệt (mặc định)                                      |
+### Studio đọc báo cáo (`bao-cao`)
+
+| Địa chỉ          | Trạng thái                                                            |
+| ---------------- | --------------------------------------------------------------------- |
+| `?state=full`    | Báo cáo đã duyệt (mặc định)                                           |
 | `?state=draft`   | Báo cáo đang soạn. Đây là trạng thái trống: studio chưa thấy nội dung |
-| `?state=loading` | Đang tải                                                         |
-| `?state=error`   | Không tải được                                                   |
+| `?state=loading` | Đang tải                                                              |
+| `?state=error`   | Không tải được                                                        |
 
-Dải trên cùng của trang là công cụ của bản xem thử, không thuộc sản phẩm.
-`preview.js` cũng vậy: nó chỉ đổi trạng thái theo địa chỉ.
+### Người vận hành duyệt báo cáo (`duyet-bao-cao`)
+
+| Địa chỉ           | Trạng thái                                                                |
+| ----------------- | ------------------------------------------------------------------------- |
+| `?state=draft`    | Bản nháp có bốn phát hiện; phát hiện 4 chưa có bằng chứng (mặc định)      |
+| `?state=refused`  | Sau khi bấm duyệt: hệ thống từ chối và chỉ ra phát hiện thiếu bằng chứng |
+| `?state=approved` | Đã duyệt: ghi ai duyệt, lúc nào, và dẫn tới báo cáo của studio            |
+| `?state=empty`    | Chưa có bản nháp vì chưa có phiên chơi nào xong                           |
+| `?state=loading`  | Đang tải                                                                  |
+| `?state=error`    | Không tải được                                                            |
+
+Màn hình này bấm được. Ba kịch bản của US-05 thử như sau:
+
+1. Bấm "Duyệt và gửi studio" khi phát hiện 4 chưa có bằng chứng: trang từ chối
+   và chỉ ra phát hiện 4.
+2. Chọn một phiên chơi cho phát hiện 4, hoặc bấm "Bỏ phát hiện 4" (có "Hoàn
+   tác"): lời từ chối biến mất.
+3. Bấm duyệt lần nữa: trang chuyển sang "Đã duyệt". Trang của studio lúc trước
+   ghi "đang soạn", nay là báo cáo.
+
+`duyet.js` đóng vai máy chủ cho ba bước đó. Không có gì được lưu; tải lại trang
+là về dữ liệu mẫu.
+
+Những thứ màn hình này **chưa vẽ**, vì bản yêu cầu chưa nói:
+
+- thêm một phát hiện mới bằng tay;
+- sửa hoặc rút lại một báo cáo đã duyệt;
+- trạng thái "lưu thay đổi thất bại" (màn hình ghi "thay đổi được lưu ngay");
+- sửa phần "Số đo chính". Phần đó do hệ thống tính từ số đo và người vận hành
+  xem qua nút "Xem trước báo cáo".
 
 ## Tệp
 
@@ -42,6 +74,8 @@ Dải trên cùng của trang là công cụ của bản xem thử, không thu�
 | `tokens.css`, `base.css` | Do lệnh `theme.mjs scaffold hum --scope app` của Hallmark sinh ra. Chỉ sửa tay các dòng về kiểu chữ trong `tokens.css` |
 | `app.css`                | Phần dùng chung của các màn hình. Đầu tệp có dòng ghi của Hallmark      |
 | `bao-cao.html`           | Màn hình studio đọc báo cáo                                             |
+| `duyet-bao-cao.html` | Màn hình người vận hành duyệt báo cáo |
+| `duyet.js` | Hành vi của màn hình duyệt trong bản xem thử: đếm bằng chứng, từ chối, bỏ và hoàn tác |
 | `preview.js`             | Đổi trạng thái theo địa chỉ; ghi phát hiện đang mở vào địa chỉ          |
 
 ## Kiểu chữ
@@ -87,11 +121,16 @@ Chạy với Hallmark ở commit `04977e1`, cách chạy nằm ở `../research/
 | 2026-11-28 | Dựng hình, `--scope app`, bốn trạng thái | 0 FAIL, 0 REFLEX, 1 WARN mỗi trạng thái (phông chữ) |
 | 2026-11-29 | Tĩnh, sau khi đổi phông | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4) |
 | 2026-11-29 | Dựng hình, sau khi đổi phông, bốn trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
+| 2026-11-29 | Tĩnh, sau khi thêm màn hình duyệt | 0 FAIL, 0 REFLEX, 0 WARN, 1 ANSWERED (F4) |
+| 2026-11-29 | Dựng hình, màn hình duyệt, sáu trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
+| 2026-11-29 | Dựng hình lại, màn hình báo cáo, bốn trạng thái | 0 FAIL, 0 REFLEX, 0 WARN |
 
 - **F4** báo có hai kiểu nút được tô nền. Nút phụ là "giấy bìa" của Hum trên
   màu thẻ; chỉ nút chính có màu vàng. Lý do được ghi ở đầu `app.css`.
 - **WARN về phông chữ (lần chạy 2026-11-28):** máy làm việc không tải được
   Chillax từ `api.fontshare.com`, nên lần đó dựng hình bằng phông dự phòng.
   Sau khi đổi phông và đặt tệp phông trong kho, cảnh báo này hết.
-- Lần dựng hình đầu báo hai REFLEX (một liên kết xuống dòng ở 1024 px; chữ của
+- Lần dựng hình đầu của màn hình duyệt báo một REFLEX (một liên kết xuống dòng
+  ở 320 px). Đã sửa bằng cách rút ngắn nhãn, không ghi miễn.
+- Lần dựng hình đầu của màn hình báo cáo báo hai REFLEX (một liên kết xuống dòng ở 1024 px; chữ của
   phát hiện đang đóng bị tính là sát mép). Cả hai đã được sửa, không ghi miễn.
