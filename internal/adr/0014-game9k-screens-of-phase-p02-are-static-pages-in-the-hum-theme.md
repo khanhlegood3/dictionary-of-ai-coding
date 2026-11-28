@@ -38,8 +38,10 @@ before merging?
   - Lora is used for body text, as the guideline says.
   - Poppins lacks 90 of the 134 Vietnamese letters with marks, by its files.
     Be Vietnam Pro stands in for it, for headings, labels and controls.
-  - Both faces are under the SIL Open Font License 1.1 and are served from
-    `game9k/02-ux/fonts/`. No screen loads a font from a third party.
+  - Both faces are under the SIL Open Font License 1.1 and are served by the
+    site. No screen loads a font from a third party. Since
+    [ADR 0015](0015-the-whole-project-is-set-in-lora-and-be-vietnam-pro.md)
+    the whole project uses the same two faces and the same files.
 - **Phase P02 started on 2026-11-28.** This is the owner's decision.
 - **A screen is a static HTML file under `game9k/02-ux/`**, with shared CSS
   beside it. There is one file per flow of the requirements document. A screen

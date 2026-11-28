@@ -88,6 +88,16 @@ this site. The typeface is JetBrains Mono (SIL Open Font License 1.1). The
 build copies it from the `@fontsource-variable/jetbrains-mono` package to
 `dist/assets/fonts/`.
 
+Every other page is set in Lora (serif) and Be Vietnam Pro (sans), both under
+the SIL Open Font License 1.1 and both with every Vietnamese letter
+([ADR 0015](../internal/adr/0015-the-whole-project-is-set-in-lora-and-be-vietnam-pro.md)).
+`site/fonts.css` names the font files. The build copies each named file from
+`@fontsource-variable/lora` or `@fontsource/be-vietnam-pro` to
+`dist/assets/fonts/`, with the licence texts, and stops when one is missing.
+To add a weight, add its `@font-face` blocks to `site/fonts.css`. Before a new
+typeface is used, check its files for the Vietnamese letters; a language list
+on a font site is not enough.
+
 ## Progress and sync
 
 `site/learn-store.js` keeps which terms a visitor finished and where they

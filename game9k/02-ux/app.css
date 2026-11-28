@@ -5,13 +5,14 @@
 /* Hallmark · answered F4 · the secondary button is Hum card stock on the card colour, and the pear fill is kept for the one action of a state */
 @import url("./tokens.css");
 @import url("./base.css");
-@import url("./fonts.css");
+@import url("/assets/fonts.css");
 
 /* The faces. The owner replaced Hum's Chillax, which drew Vietnamese
-   letters with marks wrongly. The published Anthropic brand guideline names Poppins for
-   headings and Lora for body text. Poppins lacks most of those letters
-   too, so Be Vietnam Pro stands in for it. The faces are set in
-   tokens.css and served from ./fonts/ by fonts.css. */
+   letters with marks wrongly. The published Anthropic brand guideline names
+   Poppins for headings and Lora for body text. Poppins lacks most of those
+   letters too, so Be Vietnam Pro stands in for it. The faces are named in
+   tokens.css and come from /assets/fonts.css, which the whole project
+   shares (ADR 0015). */
 
 :root {
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 0 0.25 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");

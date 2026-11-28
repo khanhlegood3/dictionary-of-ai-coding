@@ -42,7 +42,6 @@ Dải trên cùng của trang là công cụ của bản xem thử, không thu�
 | `tokens.css`, `base.css` | Do lệnh `theme.mjs scaffold hum --scope app` của Hallmark sinh ra. Chỉ sửa tay các dòng về kiểu chữ trong `tokens.css` |
 | `app.css`                | Phần dùng chung của các màn hình. Đầu tệp có dòng ghi của Hallmark      |
 | `bao-cao.html`           | Màn hình studio đọc báo cáo                                             |
-| `fonts.css`, `fonts/` | Hai kiểu chữ của màn hình và văn bản giấy phép của chúng |
 | `preview.js`             | Đổi trạng thái theo địa chỉ; ghi phát hiện đang mở vào địa chỉ          |
 
 ## Kiểu chữ
@@ -63,9 +62,13 @@ Cách kiểm: đọc bảng mã của từng tệp phông bằng `fontTools`, r�
 tự trên màn hình và 134 chữ tiếng Việt có dấu, cả hoa lẫn thường. Lora và Be
 Vietnam Pro không thiếu chữ nào.
 
-Hai phông đều theo giấy phép SIL Open Font License 1.1. Tệp phông lấy từ
-`@fontsource-variable/lora` 5.3.0 và `@fontsource/be-vietnam-pro` 5.3.0, đặt ở
-`fonts/` cùng văn bản giấy phép. Màn hình không tải phông từ nơi nào khác.
+Hai phông đều theo giấy phép SIL Open Font License 1.1. Từ
+[ADR 0015](../../internal/adr/0015-the-whole-project-is-set-in-lora-and-be-vietnam-pro.md),
+cả dự án dùng chung hai phông này. Bản dựng lấy tệp phông từ hai gói npm
+`@fontsource-variable/lora` và `@fontsource/be-vietnam-pro` rồi đặt ở
+`/assets/fonts/`; `app.css` nạp chúng qua `/assets/fonts.css`. Màn hình không
+tải phông từ nơi nào khác. Vì vậy mở thẳng tệp `.html` trong thư mục, không
+qua bản dựng, sẽ chỉ thấy phông dự phòng.
 
 ## Dữ liệu mẫu
 
