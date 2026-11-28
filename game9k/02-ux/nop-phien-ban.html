@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Gửi phiên bản, bản xem thử P02 của Game9K Playtest</title>
+    <meta
+      name="description"
+      content="Màn hình người vận hành gửi một gói game web để tạo một phiên bản, định danh bằng mã băm của gói. Bản xem thử, dữ liệu mẫu."
+    />
+    <link rel="stylesheet" href="./app.css" />
+    <script src="./preview.js" defer></script>
+    <script src="./nop.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#noi-dung">Tới nội dung</a>
+
+    <aside class="preview" aria-label="Thông tin bản xem thử">
+      <div class="container shell preview__in">
+        <p>
+          Bản xem thử của pha P02. Mọi tên, ngày và số liệu là dữ liệu mẫu, và
+          không có gì được lưu.
+        </p>
+        <ul class="views" aria-label="Trạng thái của màn hình">
+          <li class="views__label">Trạng thái</li>
+          <li>
+            <a href="?state=form" data-view-link="form" aria-current="page"
+              >Sẵn sàng</a
+            >
+          </li>
+          <li>
+            <a href="?state=sending" data-view-link="sending">Đang gửi</a>
+          </li>
+          <li><a href="?state=created" data-view-link="created">Đã tạo</a></li>
+          <li><a href="?state=same" data-view-link="same">Gói trùng</a></li>
+          <li>
+            <a href="?state=refused" data-view-link="refused">Bị từ chối</a>
+          </li>
+          <li><a href="?state=empty" data-view-link="empty">Chưa có gì</a></li>
+          <li>
+            <a href="?state=loading" data-view-link="loading">Đang tải</a>
+          </li>
+          <li><a href="?state=error" data-view-link="error">Lỗi</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <header class="bar">
+      <div class="container shell bar__in">
+        <a
+          class="brand"
+          href="./nop-phien-ban"
+          aria-label="Game9K Playtest, về trang phiên bản"
+          >Game9K Playtest</a
+        >
+        <span class="bar__what">Người vận hành</span>
+      </div>
+    </header>
+
+    <main id="noi-dung" class="container shell">
+      <div class="stack" data-state="form sending created same refused empty">
+        <section class="head">
+          <h1>Phiên bản</h1>
+          <p class="lead">
+            Một phiên bản là một gói game cụ thể,
+            <mark>định danh bằng mã băm của gói</mark>. Sửa gói là ra phiên bản
+            mới.
+          </p>
+        </section>
+
+        <section
+          class="notice notice--good"
+          data-state="created"
+          role="status"
+          tabindex="-1"
+          aria-labelledby="da-tao"
+          hidden
+        >
+          <h2 id="da-tao">Đã tạo phiên bản</h2>
+          <dl class="receipt">
+            <div>
+              <dt>Mã băm của gói (SHA-256)</dt>
+              <dd>
+                <code class="hash" data-out="hash"
+                  >a3d90e17c45dd104ee590f4a4bab4ff750fd1cce853d448ae5f0bcdfd5defdad</code
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>Gói</dt>
+              <dd data-out="file">dua-thuyen-0.3.zip, 6,8 MB, 41 tệp</dd>
+            </div>
+            <div>
+              <dt>Game và studio</dt>
+              <dd data-out="game">Đua Thuyền của Sao Mai</dd>
+            </div>
+          </dl>
+          <p>
+            Phiên bản này không sửa được. Gửi lại đúng gói này sẽ cho ra cùng mã
+            băm; gửi một gói đã sửa sẽ tạo một phiên bản khác.
+          </p>
+        </section>
+
+        <section
+          class="notice"
+          data-state="same"
+          role="status"
+          tabindex="-1"
+          aria-labelledby="goi-trung"
+          hidden
+        >
+          <h2 id="goi-trung">Gói này đã là một phiên bản</h2>
+          <dl class="receipt">
+            <div>
+              <dt>Mã băm của gói (SHA-256)</dt>
+              <dd>
+                <code class="hash" data-out="same-hash"
+                  >9f2c41d8b5fc34b6ab31fd85841c98ac2f10c1fc0e9d64ca9945f3ed2df3b54f</code
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>Trùng với phiên bản</dt>
+              <dd data-out="same-with">
+                Ếch Vượt Ao của Sao Mai, gửi lúc 16:40 ngày 3/12/2026
+              </dd>
+            </div>
+          </dl>
+          <p>Hệ thống không tạo phiên bản mới.</p>
+        </section>
+
+        <section aria-labelledby="gui-goi">
+          <h2 id="gui-goi">Gửi một gói game</h2>
+          <form class="send" data-send novalidate>
+            <div class="send__row">
+              <div class="field">
+                <label for="studio">Studio</label>
+                <input
+                  class="input"
+                  type="text"
+                  id="studio"
+                  name="studio"
+                  autocomplete="organization"
+                  aria-describedby="studio-loi"
+                />
+                <p class="field__error" id="studio-loi" hidden>
+                  Lỗi: hãy ghi tên studio.
+                </p>
+              </div>
+              <div class="field">
+                <label for="game">Tên game</label>
+                <input
+                  class="input"
+                  type="text"
+                  id="game"
+                  name="game"
+                  autocomplete="off"
+                  aria-describedby="game-loi"
+                />
+                <p class="field__error" id="game-loi" hidden>
+                  Lỗi: hãy ghi tên game.
+                </p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="goi">Gói game</label>
+              <input
+                class="input input--file"
+                type="file"
+                id="goi"
+                name="goi"
+                accept=".zip,application/zip"
+                aria-describedby="goi-goi-y goi-loi"
+              />
+              <p class="field__hint" id="goi-goi-y">
+                Một tệp .zip có tệp index.html ở ngay gốc của gói.
+              </p>
+              <p
+                class="field__error"
+                id="goi-loi"
+                data-state="refused"
+                data-out="refusal"
+              >
+                Lỗi: gói “dua-thuyen-0.3.zip” không có tệp index.html ở gốc. Hệ
+                thống không tạo phiên bản. Hãy nén lại sao cho index.html nằm
+                ngay ở gốc của gói, rồi gửi lại.
+              </p>
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn--primary" data-submit>
+                Gửi gói
+              </button>
+              <span class="send__busy" data-state="sending" role="status"
+                >Đang đọc gói và tính mã băm.</span
+              >
+            </div>
+          </form>
+        </section>
+
+        <section aria-labelledby="da-co">
+          <h2 id="da-co">Phiên bản đã có</h2>
+          <div data-state="form sending created same refused">
+            <table class="table">
+              <caption class="visually-hidden">
+                Các phiên bản đã tạo, mới nhất ở trên
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Mã băm, 8 ký tự đầu</th>
+                  <th scope="col">Game</th>
+                  <th scope="col">Studio</th>
+                  <th scope="col">Gói</th>
+                  <th scope="col">Cỡ</th>
+                  <th scope="col">Gửi lúc</th>
+                </tr>
+              </thead>
+              <tbody data-versions>
+                <tr
+                  data-state="created"
+                  data-hash="a3d90e17c45dd104ee590f4a4bab4ff750fd1cce853d448ae5f0bcdfd5defdad"
+                  data-game="Đua Thuyền"
+                  data-studio="Sao Mai"
+                  data-when="vừa xong"
+                >
+                  <th scope="row"><code>a3d90e17</code></th>
+                  <td data-label="Game">Đua Thuyền</td>
+                  <td data-label="Studio">Sao Mai</td>
+                  <td data-label="Gói">dua-thuyen-0.3.zip</td>
+                  <td data-label="Cỡ" class="num">6,8 MB</td>
+                  <td data-label="Gửi lúc" class="when">Vừa xong</td>
+                </tr>
+                <tr
+                  data-hash="9f2c41d8b5fc34b6ab31fd85841c98ac2f10c1fc0e9d64ca9945f3ed2df3b54f"
+                  data-game="Ếch Vượt Ao"
+                  data-studio="Sao Mai"
+                  data-when="16:40 ngày 3/12/2026"
+                >
+                  <th scope="row"><code>9f2c41d8</code></th>
+                  <td data-label="Game">Ếch Vượt Ao</td>
+                  <td data-label="Studio">Sao Mai</td>
+                  <td data-label="Gói">ech-vuot-ao-0.3.zip</td>
+                  <td data-label="Cỡ" class="num">4,2 MB</td>
+                  <td data-label="Gửi lúc" class="when">3/12/2026, 16:40</td>
+                </tr>
+                <tr
+                  data-hash="51c07be2955ded564678e9e9b483b912b1b124512783c76f78b39ca213e74419"
+                  data-game="Ếch Vượt Ao"
+                  data-studio="Sao Mai"
+                  data-when="09:15 ngày 20/11/2026"
+                >
+                  <th scope="row"><code>51c07be2</code></th>
+                  <td data-label="Game">Ếch Vượt Ao</td>
+                  <td data-label="Studio">Sao Mai</td>
+                  <td data-label="Gói">ech-vuot-ao-0.2.zip</td>
+                  <td data-label="Cỡ" class="num">3,9 MB</td>
+                  <td data-label="Gửi lúc" class="when">20/11/2026, 09:15</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="how">
+              Bảng này không có nút sửa: không thao tác nào thay được tệp bên
+              trong một phiên bản đã tạo.
+            </p>
+          </div>
+          <p class="section__note" data-state="empty" hidden>
+            Chưa có phiên bản nào. Gửi gói đầu tiên ở phần trên.
+          </p>
+        </section>
+      </div>
+
+      <section class="skel" data-state="loading" aria-busy="true" hidden>
+        <h1 class="visually-hidden">Đang tải các phiên bản</h1>
+        <div>
+          <i class="skel__title"></i>
+          <i class="skel__line"></i>
+        </div>
+        <div class="skel__sheets"><i></i><i></i></div>
+      </section>
+
+      <section
+        class="state state--error"
+        data-state="error"
+        role="alert"
+        hidden
+      >
+        <h1>Không tải được các phiên bản</h1>
+        <p>
+          Kết nối tới máy chủ bị gián đoạn nên trang chưa lấy được nội dung. Các
+          phiên bản đã tạo vẫn còn nguyên.
+        </p>
+        <p class="state__why">Hãy tải lại rồi gửi gói.</p>
+        <a class="btn btn--primary" href="?state=form">Tải lại</a>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="container shell foot__in">
+        <p>Game9K Playtest. Bản được chơi thử đúng là bản đã gửi.</p>
+      </div>
+    </footer>
+  </body>
+</html>
