@@ -93,8 +93,11 @@ cụ chơi thử B2B cho studio game web", lệnh `theme.mjs deal` trả về:
 | Hum    | Giấy kem ngả vàng, chữ tròn, ba màu nhấn; ghi hợp với game và việc đọc      | <https://www.usehallmark.com/themes/hum/>    |
 
 Với màn hình làm việc, theme chỉ cho màu, chữ, bo góc và bề mặt; bố cục là của
-màn hình. Agent chưa xem hình của ba theme này. Chọn theme là việc của chủ dự
-án.
+màn hình. Lúc viết ghi chú này agent chưa xem hình của ba theme. Chọn theme là
+việc của chủ dự án.
+
+**Cập nhật 2026-11-28:** chủ dự án chọn Hum và cho bắt đầu pha P02 (ADR 0014).
+Màn hình đầu tiên và kết quả `sloplint` của nó nằm ở `../02-ux/`.
 
 ## Ba cách làm đáng chép cho sản phẩm
 
@@ -127,15 +130,15 @@ Playtest phải làm với một game:
 
 ## Chưa kiểm
 
-- Chưa có màn hình Game9K nào được dựng bằng Hallmark. Chưa biết kết quả có
-  hợp ý chủ dự án không.
+- Mới có một màn hình Game9K được dựng bằng Hallmark (`../02-ux/bao-cao.html`).
+  Chưa biết kết quả có hợp ý chủ dự án không.
 - Hallmark chưa được chạy qua một công cụ có nạp skill (Claude Code, Codex).
   Agent chỉ đọc luật và chạy hai script.
 - Ngoài phát hiện về `:focus-visible`, agent chưa kiểm tay từng phát hiện của
   `sloplint`.
 - Bản nháp <https://game9k.vercel.app> chưa được kiểm: máy làm việc không truy
   cập được địa chỉ đó.
-- Hình của ba theme.
+- Hình của Arcade và Coral. Agent đã xem hình của Hum.
 
 ## Nguồn
 
