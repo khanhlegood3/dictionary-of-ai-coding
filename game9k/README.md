@@ -43,7 +43,8 @@ nơi khác. Chúng là đầu vào và chưa được thẩm định ở đây.
 
 - #26: khôi phục mã nguồn từ tài khoản GitHub đã mất.
 - #27: bộ số "Game Portal 2026" chưa có nguồn.
-- #28: viết bản yêu cầu sản phẩm (cổng P01).
+- #28: bản yêu cầu sản phẩm `01-requirements/PRD.md` đang chờ chủ dự án duyệt ở
+  cổng P01.
 - #29: chọn nơi chứa mã nguồn.
 - #30: thêm agent rà soát pull request.
 - #31: `/tasks` hiển thị pha và cổng.
