@@ -4,11 +4,12 @@ Thư mục này là nơi quản trị dự án Game9K: yêu cầu, thiết kế,
 các tài liệu mang sang từ kho đã mất. Lý do nó nằm trong kho từ điển được ghi
 ở [ADR 0011](../internal/adr/0011-the-repository-also-holds-the-game9k-project.md).
 
-Hướng kinh doanh chưa chốt (issue #10). Hai hướng đang cân nhắc là dịch vụ
-chơi thử trả phí cho studio, và launchpad mở vốn theo mốc cho từng phiên bản
-game. Chủ dự án chưa chọn hướng launchpad KVU–KAU (nói ngày 2026-11-27).
-`01-requirements/ho-chieu-goi-von.md` là bản nháp gom phần chung của hai
-hướng thành một "hộ chiếu gọi vốn".
+**Hướng kinh doanh đã chốt ngày 2026-11-28:** lõi của Game9K là dịch vụ chơi
+thử trả phí cho studio
+([ADR 0012](../internal/adr/0012-game9k-takes-paid-playtesting-for-studios-as-its-core.md)).
+Launchpad KVU–KAU không được chọn. Lựa chọn này chưa được kiểm bằng khách hàng
+thật; việc đầu tiên là đợt thử có thu tiền trong
+`research/chon-huong-kinh-doanh.md`.
 
 ## Ở đâu có gì
 
@@ -40,7 +41,6 @@ nơi khác. Chúng là đầu vào và chưa được thẩm định ở đây.
 
 ## Việc đang mở
 
-- #10: chọn mô hình kinh doanh.
 - #26: khôi phục mã nguồn từ tài khoản GitHub đã mất.
 - #27: bộ số "Game Portal 2026" chưa có nguồn.
 - #28: viết bản yêu cầu sản phẩm (cổng P01).
