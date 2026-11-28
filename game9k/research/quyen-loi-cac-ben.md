@@ -59,6 +59,84 @@ Hai điều nên biết trước khi dùng bảng này:
   token và quyền mua ưu tiên có tới tay người chơi trong nước hay không là
   câu hỏi tài liệu chưa trả lời.
 
+## Người chỉ mua token của phiên bản 1
+
+Câu hỏi của chủ dự án ngày 2026-11-28. Trả lời theo hồ sơ mặc định của tài liệu
+nguồn (VBOND-LV, bảng ở §2). Hiện không có token nào để mua: launchpad không
+được chọn (ADR 0012) và tài liệu ghi mã hợp đồng chưa viết xong.
+
+**Trả lời ngắn: lợi ích tài chính duy nhất là bán lại token cho người khác với
+giá cao hơn giá mua.** Tài liệu không thiết kế dòng tiền nào đi từ game về
+người giữ token.
+
+### Tiền của người mua đi đâu
+
+Một đợt bán hết thu 76,11 SOL (§2):
+
+| Khoản                                            |   SOL |  Phần |
+| ------------------------------------------------ | ----: | ----: |
+| Trả cho studio theo ba mốc 30% / 40% / 30%       | 60,20 | 79,1% |
+| Ghép với 50 triệu token làm thanh khoản trên sàn | 14,39 | 18,9% |
+| Phí nền tảng                                     |  1,52 |  2,0% |
+
+Khi studio đạt đủ ba mốc, toàn bộ số tiền đã được tiêu hoặc nằm ở sàn. Không
+khoản nào quay về người giữ token.
+
+### Thứ người giữ token có
+
+- **Khả năng lãi do giá.** Tài liệu ghi biên độ giá trên đường cong bán là 5,15 lần (§2); agent hiểu đó là giá token cuối so với token đầu. Vậy người mua sớm có lãi trên giấy nếu đợt bán hết. Muốn
+  thành tiền thì phải có người mua lại. Thanh khoản trên sàn chỉ 14,39 SOL so
+  với 76,11 SOL đã huy động, và tài liệu tự ghi "Toán học KVU không bảo đảm giá
+  token sau khi tốt nghiệp lên DEX" (§3).
+- **Các bảo vệ để lỗ ít hơn.** Studio chỉ nhận tiền theo mốc. Dự án đứng 60–90
+  ngày thì người giữ rút phần mình trong quỹ còn lại, không phí phạt; tài liệu
+  ghi rõ khoản này "không hoàn đủ 100% vốn bỏ vào" (§3). Tổng cung cố định 1 tỷ
+  token, nền tảng không giữ token.
+- **Lợi gián tiếp.** Studio có tiền đặt trước sớm nên ít bỏ dở (§4).
+
+Ví dụ do agent tính, với giả định "quỹ còn lại" là phần chưa trả cho studio và
+chưa ai bán: dự án đứng sau mốc đầu thì còn 42,14 SOL cho những người đã góp
+76,11 SOL, khoảng 55%; đứng sau mốc hai thì còn 18,06 SOL, khoảng 24%. Công
+thức chia trong tài liệu là một hình agent không đọc được, nên đây chỉ là minh
+hoạ.
+
+Mua rồi bán ngay thì lỗ ít nhất 5,95% (§2). Luật này chặn bot, và cũng áp cho
+mọi người muốn lướt nhanh.
+
+### Thứ tài liệu không cho
+
+- **Không có khoản trả nào.** Agent tìm các từ lãi, lợi tức, cổ tức, chia doanh
+  thu, mua lại, đốt token và không thấy cơ chế nào. Tài liệu gọi token là "trái
+  phiếu phiên bản" và dùng chữ "đáo hạn", nhưng không định nghĩa khoản tiền nào
+  được trả khi đến hạn.
+- **Không có quyền với phiên bản 2.** Mỗi phiên bản có token, đường cong bán và
+  két riêng; tài sản của bản trước và bản sau không chạm nhau (§2). Bản sau
+  thất bại không kéo bản 1 xuống, và bản sau thành công cũng không chảy về
+  người giữ token bản 1. Tài liệu xếp câu "người mua có định giá riêng từng
+  phiên bản không" vào nhóm chưa chứng minh (§2).
+- **Không có quyền mua ưu tiên.** Quyền đó gắn với giờ chơi thật, không gắn với
+  việc giữ token (§2).
+- **Chưa có văn bản quyền.** "Token Rights Agreement" là một đầu việc phải làm
+  trước khi mở bán (§5).
+- **Một phần tổng cung chưa rõ chủ.** Bán 60%, ghép sàn 5%, quỹ thưởng người
+  chơi 10–20%. Agent không thấy tài liệu nói 15–25% còn lại thuộc về ai.
+
+### Ai được mua
+
+Theo §4, token chỉ được chào bán cho nhà đầu tư nước ngoài qua tổ chức được cấp
+phép, và cửa token phải chặn người dùng ở Việt Nam.
+
+### Điều này có nghĩa gì khi đi gọi vốn
+
+Đây là nhận định của agent.
+
+- Không nên gọi token này là "trái phiếu" hay nói nó có lợi tức trước nhà đầu
+  tư. Nó không trả gốc và không trả lãi.
+- Muốn người giữ token có lợi ích tài chính thật thì phải thiết kế thêm, ví dụ
+  trích một phần doanh thu của phiên bản để mua lại token, hoặc cho quyền đổi
+  sang token bản sau. Mỗi cách làm token giống chứng khoán hơn và cần luật sư
+  xem trước. Không việc nào trong số này nằm trong kế hoạch (ADR 0012).
+
 ## Chỗ quyền lợi kéo ngược nhau
 
 Đây là nhận định của agent.
